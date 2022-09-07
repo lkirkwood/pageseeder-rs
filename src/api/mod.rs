@@ -49,34 +49,41 @@ impl PSServer {
         }
     }
 
+    /// Returns the uri slug appended to the PS url.
+    fn format_url(&self, uri_slug: &str) -> String {
+        format!("{}://{}:{}/{}", self.scheme, self.hostname, self.port, uri_slug)
+    }
+
     // Unchecked
+
+    /// Makes a get request to the server at the specified uri slug.
+    fn get(&self, uri_slug: &str) -> Result<blocking::Response, Box<dyn Error>> {
+        let req = self.client.get(self.format_url(uri_slug));
+        return Ok(req.send()?)
+    }
 
     /// Makes a post request to the server at the specified uri slug.
     /// Form data is included if provided.
-    /// No token checking is done.
-    fn generic_post<T: Serialize + ?Sized>(
+    fn post<T: Serialize + ?Sized>(
         &self, uri_slug: &str, form: Option<&T>
     ) -> Result<blocking::Response, Box<dyn Error>> {
-        let mut req = self.client.post(
-            format!("{}://{}:{}/{}", self.scheme, self.hostname, self.port, uri_slug)
-        );
+        let mut req = self.client.post(self.format_url(uri_slug));
         if form.is_some() {
             req = req.form(form.unwrap());
         }
-
         return Ok(req.send()?)
     }
 
     /// Gets a new access token for the server.
     fn get_token(&self) -> Result<PSToken, Box<dyn Error>> {
-        let resp = self.generic_post("/ps/oauth/token", 
+        let resp = self.post("/ps/oauth/token", 
             Some(&self.credentials.to_params()))?;
 
         let token_resp: oauth::TokenResponse = serde_json::from_str(&resp.text()?)?;
         return Ok(PSToken::expires_in(token_resp.access_token, token_resp.expires_in))
     }
 
-    /// Gets a new access token and stores it ONLY if it is invalid.
+    /// Gets a new access token and stores it only if the current one is invalid.
     fn update_token(&mut self) -> Result<(), Box<dyn Error>> {
         match &self.token {
             None => {
@@ -100,6 +107,6 @@ impl PSServer {
         &mut self, uri_slug: &str, form: Option<&T>
     ) -> Result<blocking::Response, Box<dyn Error>> {
         self.update_token()?;
-        return self.generic_post(uri_slug, form)
-    }
+        return self.post(uri_slug, form)
+    }   
 }
