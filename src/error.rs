@@ -1,21 +1,27 @@
 use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
-pub struct PageSeederError {
-    hostname: String,
-    message: String
+pub enum PSError {
+    ServerError {
+        msg: String
+    },
+    TokenError {
+        cause: String
+    }
 }
-impl Error for PageSeederError {}
-impl Display for PageSeederError {
+
+pub type PSResult<T> = Result<T, PSError>;
+
+impl Error for PSError {}
+impl Display for PSError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Operation failed with PS server \"{}\"; {}", self.hostname, self.message)
+        match self {
+            Self::ServerError { msg } => {
+                write!(f, "Operation failed on the server: {}", msg)
+            },
+            Self::TokenError { cause } => {
+                write!(f, "Error using token: {}", cause)
+            }
+        }
     }
 }
-
-macro_rules! pserror {
-    ($ps:expr, $msg:expr) => {
-        PageSeederError {hostname: ps.hostname.clone(), message: msg.to_string()}
-    }
-}
-
-pub(crate) use pserror;
