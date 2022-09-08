@@ -12,7 +12,7 @@ pub enum PSCredentials {
 
 impl PSCredentials {
     /// Returns a map of parameters to use to request a grant.
-    pub fn to_params(&self) -> HashMap<&'static str, String> {
+    pub fn to_map(&self) -> HashMap<&'static str, String> {
         match self {
             Self::ClientCredentials { id, secret } => {
                 let mut map = HashMap::new();
