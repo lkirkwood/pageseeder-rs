@@ -2,11 +2,14 @@ use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
 pub enum PSError {
+    CommunicationError {
+        msg: String
+    },
     ServerError {
         msg: String
     },
     TokenError {
-        cause: String
+        msg: String
     }
 }
 
@@ -16,10 +19,13 @@ impl Error for PSError {}
 impl Display for PSError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::CommunicationError { msg } => {
+                write!(f, "Error communicating with server: {}", msg)
+            }
             Self::ServerError { msg } => {
                 write!(f, "Operation failed on the server: {}", msg)
             },
-            Self::TokenError { cause } => {
+            Self::TokenError { msg: cause } => {
                 write!(f, "Error using token: {}", cause)
             }
         }
