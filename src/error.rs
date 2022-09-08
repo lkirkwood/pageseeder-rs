@@ -25,8 +25,8 @@ impl Display for PSError {
             Self::ServerError { msg } => {
                 write!(f, "Operation failed on the server: {}", msg)
             },
-            Self::TokenError { msg: cause } => {
-                write!(f, "Error using token: {}", cause)
+            Self::TokenError { msg } => {
+                write!(f, "Error using token: {}", msg)
             }
         }
     }
