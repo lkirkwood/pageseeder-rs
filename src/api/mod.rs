@@ -396,4 +396,26 @@ impl AsyncPSServer {
         self.update_token().await;
         return self.get(uri_slug, params, headers);
     }
+
+    pub async fn checked_post<T: Into<Body>>(
+        &mut self,
+        uri_slug: &str,
+        params: Option<&Vec<(String, String)>>,
+        headers: Option<HeaderMap<HeaderValue>>,
+        body: Option<T>,
+    ) -> impl Future<Output = Result<Response, ReqwError>> {
+        self.update_token().await;
+        return self.post(uri_slug, params, headers, body);
+    }
+
+    pub async fn checked_post_form<F: Serialize + ?Sized>(
+        &mut self,
+        uri_slug: &str,
+        params: Option<&Vec<(String, String)>>,
+        headers: Option<HeaderMap<HeaderValue>>,
+        form: Option<&F>,
+    ) -> impl Future<Output = Result<Response, ReqwError>> {
+        self.update_token().await;
+        return self.post_form(uri_slug, params, headers, form);
+    }
 }
