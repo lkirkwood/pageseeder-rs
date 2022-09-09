@@ -2,15 +2,9 @@ use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
 pub enum PSError {
-    CommunicationError {
-        msg: String
-    },
-    ServerError {
-        msg: String
-    },
-    TokenError {
-        msg: String
-    }
+    CommunicationError { msg: String },
+    ServerError { msg: String },
+    TokenError { msg: String },
 }
 
 pub type PSResult<T> = Result<T, PSError>;
@@ -24,7 +18,7 @@ impl Display for PSError {
             }
             Self::ServerError { msg } => {
                 write!(f, "Operation failed on the server: {}", msg)
-            },
+            }
             Self::TokenError { msg } => {
                 write!(f, "Error using token: {}", msg)
             }
