@@ -1,4 +1,6 @@
-use std::{error::Error, fmt::Display};
+use std::{error::Error, fmt::Display, future::Future};
+
+use reqwest::{Error as ReqwError, Response};
 
 #[derive(Debug)]
 pub enum PSError {
@@ -8,6 +10,7 @@ pub enum PSError {
 }
 
 pub type PSResult<T> = Result<T, PSError>;
+pub type AsyncResult = Result<Response, ReqwError>;
 
 impl Error for PSError {}
 impl Display for PSError {
