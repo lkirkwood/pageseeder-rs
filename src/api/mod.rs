@@ -1,7 +1,6 @@
 pub mod model;
 pub mod oauth;
 
-use std::error::Error;
 use std::future::Future;
 
 use chrono::Utc;
@@ -9,7 +8,7 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{blocking, Body, Client, Error as ReqwError, Response};
 use serde::Serialize;
 
-use crate::error::{PSError, PSResult};
+use crate::error::{AsyncResult, PSError, PSResult};
 
 use self::model::HttpScheme;
 use self::oauth::PSToken;
@@ -273,7 +272,7 @@ impl AsyncPSServer {
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -292,7 +291,7 @@ impl AsyncPSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -314,7 +313,7 @@ impl AsyncPSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -392,7 +391,7 @@ impl AsyncPSServer {
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         self.update_token().await;
         return self.get(uri_slug, params, headers);
     }
@@ -403,7 +402,7 @@ impl AsyncPSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         self.update_token().await;
         return self.post(uri_slug, params, headers, body);
     }
@@ -414,7 +413,7 @@ impl AsyncPSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
-    ) -> impl Future<Output = Result<Response, ReqwError>> {
+    ) -> impl Future<Output = AsyncResult> {
         self.update_token().await;
         return self.post_form(uri_slug, params, headers, form);
     }
