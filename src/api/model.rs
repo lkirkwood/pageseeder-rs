@@ -24,6 +24,22 @@ impl Display for HttpScheme {
     }
 }
 
+pub enum ServicePath {
+    GetGroup,
+}
+
+impl ServicePath {
+    /// Returns a string that can be used with format! to return the uri slug
+    /// for this service.
+    /// e.g. GetGroup => "/ps/service/groups/{}"
+    pub fn url_path(&self) -> String {
+        let path = match self {
+            Self::GetGroup => "groups/{}",
+        };
+        return format!("/ps/service/{}", path);
+    }
+}
+
 pub trait URLSerializable {
     fn for_url(&self) -> &str;
 }
