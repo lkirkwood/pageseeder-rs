@@ -10,7 +10,6 @@ pub enum PSError {
 }
 
 pub type PSResult<T> = Result<T, PSError>;
-pub type AsyncResult = Result<Response, ReqwError>;
 
 impl Error for PSError {}
 impl Display for PSError {
