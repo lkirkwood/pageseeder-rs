@@ -69,6 +69,7 @@ impl<'de> Visitor<'de> for PSGroupAccessStrVisitor {
     }
 }
 
+#[derive(Debug)]
 pub enum PSGroupAccess {
     Public,
     Member,
@@ -82,7 +83,7 @@ impl<'de> Deserialize<'de> for PSGroupAccess {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct PSGroup {
     pub id: u32,
     pub name: String,
