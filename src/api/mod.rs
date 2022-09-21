@@ -191,9 +191,9 @@ impl PSServer {
     /// Gets a new access token and stores it only if the current one is invalid.
     async fn update_token(&mut self) -> PSResult<&HeaderValue> {
         if !self.valid_token() {
-            self.get_token().await?;
-            let token = self.token.as_ref().unwrap();
-            let header = HeaderValue::from_str(&format!("Bearer {}", token.token));
+            self.token = Some(self.get_token().await?);
+            let header =
+                HeaderValue::from_str(&format!("Bearer {}", self.token.as_ref().unwrap().token));
             match header {
                 Err(err) => {
                     return Err(PSError::TokenError {
