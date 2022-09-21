@@ -515,6 +515,7 @@ name = "pageseeder"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "quick-xml",
  "reqwest",
  "serde",
  "serde_json",
@@ -575,6 +576,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a2ca2c61bc9f3d74d2886294ab7b9853abd9c1ad903a3ac7815c58989bb7bab"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58e21a144a0ffb5fad7b464babcdab934a325ad69b7c0373bcfef5cbd9799ca9"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]
