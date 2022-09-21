@@ -5,6 +5,7 @@ use reqwest::{Error as ReqwError, Response};
 #[derive(Debug)]
 pub enum PSError {
     CommunicationError { msg: String },
+    ParseError { msg: String },
     ServerError { msg: String },
     TokenError { msg: String },
 }
@@ -17,6 +18,9 @@ impl Display for PSError {
         match self {
             Self::CommunicationError { msg } => {
                 write!(f, "Error communicating with server: {}", msg)
+            }
+            Self::ParseError { msg } => {
+                write!(f, "Error parsing server response: {}", msg)
             }
             Self::ServerError { msg } => {
                 write!(f, "Operation failed on the server: {}", msg)
