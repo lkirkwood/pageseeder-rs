@@ -82,6 +82,7 @@ impl<'de> Deserialize<'de> for PSGroupAccess {
     }
 }
 
+#[derive(Deserialize)]
 pub struct PSGroup {
     pub id: u32,
     pub name: String,
