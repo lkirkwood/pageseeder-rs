@@ -6,10 +6,10 @@ use std::future::Future;
 
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{Body, Client};
+use reqwest::{Body, Client, Response};
 use serde::Serialize;
 
-use crate::error::{AsyncResult, PSError, PSResult};
+use crate::error::{PSError, PSResult};
 
 use self::model::HttpScheme;
 use self::oauth::PSToken;
@@ -59,12 +59,12 @@ impl PSServer {
     // Unchecked
 
     /// Makes a get request to the server at the specified uri slug.
-    fn get(
+    async fn get(
         &self,
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
-    ) -> impl Future<Output = AsyncResult> {
+    ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -72,18 +72,23 @@ impl PSServer {
         if headers.is_some() {
             req = req.headers(headers.unwrap())
         }
-        return req.send();
+        return match req.send().await {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(PSError::CommunicationError {
+                msg: format!("Failed to get {}: {:?}", uri_slug, err),
+            }),
+        };
     }
 
     /// Makes a post request to the server at the specified uri slug.
     /// Body data is included if provided.
-    fn post<T: Into<Body>>(
+    async fn post<T: Into<Body>>(
         &self,
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
-    ) -> impl Future<Output = AsyncResult> {
+    ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -94,18 +99,23 @@ impl PSServer {
         if body.is_some() {
             req = req.body(body.unwrap());
         }
-        return req.send();
+        return match req.send().await {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(PSError::CommunicationError {
+                msg: format!("Failed to post {}: {:?}", uri_slug, err),
+            }),
+        };
     }
 
     /// Makes a post request to the server at the specified uri slug.
     /// Form data is included if provided.
-    fn post_form<F: Serialize + ?Sized>(
+    async fn post_form<F: Serialize + ?Sized>(
         &self,
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
-    ) -> impl Future<Output = AsyncResult> {
+    ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
@@ -116,7 +126,12 @@ impl PSServer {
         if form.is_some() {
             req = req.form(form.unwrap());
         }
-        return req.send();
+        return match req.send().await {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(PSError::CommunicationError {
+                msg: format!("Failed to post {}: {:?}", uri_slug, err),
+            }),
+        };
     }
 
     // Token
@@ -131,7 +146,12 @@ impl PSServer {
 
     /// Gets a new access token for the server.
     async fn get_token(&self) -> PSResult<PSToken> {
-        let resp_res = self.client.post("/ps/oauth/token").send().await;
+        let resp_res = self
+            .client
+            .post(self.format_url("/ps/oauth/token"))
+            .form(&self.credentials.to_map())
+            .send()
+            .await;
 
         let resp = match resp_res {
             Ok(resp) => resp,
@@ -172,27 +192,34 @@ impl PSServer {
     async fn update_token(&mut self) -> PSResult<&HeaderValue> {
         if !self.valid_token() {
             self.get_token().await?;
-            let token = self.token.unwrap();
-            let header = HeaderValue::from_str(format!("Bearer {}", token));
+            let token = self.token.as_ref().unwrap();
+            let header = HeaderValue::from_str(&format!("Bearer {}", token.token));
             match header {
-                Err(err) => return Err(PSError::TokenError {
-                    msg: format!("Invalid token {}", err)}),
-                Ok(header) => { self.token_header = Some(header); }
+                Err(err) => {
+                    return Err(PSError::TokenError {
+                        msg: format!("Invalid token {}", err),
+                    })
+                }
+                Ok(header) => {
+                    self.token_header = Some(header);
+                }
             }
         }
-        return Ok(&self.token_header);
+        return Ok(self.token_header.as_ref().unwrap());
     }
 
     // Checked
 
-    async fn checked_get(
+    pub async fn checked_get(
         &mut self,
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
-    ) -> impl Future<Output = AsyncResult> {
-        self.update_token().await;
-        return self.get(uri_slug, params, headers);
+    ) -> PSResult<Response> {
+        let token = self.update_token().await?;
+        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        new_headers.insert("authorization", token.clone());
+        return self.get(uri_slug, params, Some(new_headers)).await;
     }
 
     async fn checked_post<T: Into<Body>>(
@@ -201,9 +228,11 @@ impl PSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
-    ) -> impl Future<Output = AsyncResult> {
-        self.update_token().await;
-        return self.post(uri_slug, params, headers, body);
+    ) -> PSResult<Response> {
+        let token = self.update_token().await?;
+        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        new_headers.insert("authorization", token.clone());
+        return self.post(uri_slug, params, Some(new_headers), body).await;
     }
 
     async fn checked_post_form<F: Serialize + ?Sized>(
@@ -212,8 +241,12 @@ impl PSServer {
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
-    ) -> impl Future<Output = AsyncResult> {
-        self.update_token().await;
-        return self.post_form(uri_slug, params, headers, form);
+    ) -> PSResult<Response> {
+        let token = self.update_token().await?;
+        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        new_headers.insert("authorization", token.clone());
+        return self
+            .post_form(uri_slug, params, Some(new_headers), form)
+            .await;
     }
 }
