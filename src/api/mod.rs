@@ -2,8 +2,6 @@ pub mod model;
 pub mod oauth;
 pub mod services;
 
-use std::future::Future;
-
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Body, Client, Response};
