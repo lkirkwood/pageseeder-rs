@@ -8,7 +8,7 @@ impl PSServer {
     /// Gets a group from the server.
     pub async fn get_group(&mut self, name: &str) -> PSResult<PSGroup> {
         let resp = self
-            .checked_get(&format!("groups/{}", name), None, None)
+            .checked_get(&format!("ps/service/groups/{}", name), None, None)
             .await?;
         let status = resp.status().as_u16();
         let text = match resp.text().await {
@@ -19,7 +19,7 @@ impl PSServer {
             }
             Ok(_text) => _text.clone(),
         };
-        if (200..300).contains(&status) {
+        if !(200..300).contains(&status) {
             return Err(PSError::ServerError {
                 msg: format!("Get group {} failed: {}", name, text),
             });
@@ -27,7 +27,7 @@ impl PSServer {
         match xml_from_str(&text) {
             Err(err) => {
                 return Err(PSError::ParseError {
-                    msg: format!("Deserialisation of xml failed: {:?}", err),
+                    msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
                 })
             }
             Ok(group) => return Ok(group),
