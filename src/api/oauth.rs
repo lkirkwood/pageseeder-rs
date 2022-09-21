@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Duration, Utc};
+use reqwest::header::{HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 pub enum PSCredentials {
-    ClientCredentials {
-        id: String,
-        secret: String
-    }
+    ClientCredentials { id: String, secret: String },
 }
 
 impl PSCredentials {
@@ -28,21 +26,23 @@ impl PSCredentials {
 /// Temporary access token for making calls to psapi.
 pub struct PSToken {
     pub token: String,
-    pub expiry: DateTime<Utc>
+    pub expiry: DateTime<Utc>,
 }
 
 impl PSToken {
     /// Creates a PSToken that will expire in the given number of seconds.
     pub fn expires_in(token: String, seconds: i64) -> PSToken {
-        return PSToken { token, expiry: Utc::now() + Duration::seconds(seconds) }
+        return PSToken {
+            token,
+            expiry: Utc::now() + Duration::seconds(seconds),
+        };
     }
 }
-
 
 #[derive(Deserialize)]
 pub struct TokenResponse {
     pub access_token: String,
     pub expires_in: i64,
     pub token_type: String,
-    pub scope: Option<String>
+    pub scope: Option<String>,
 }
