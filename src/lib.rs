@@ -3,33 +3,24 @@ pub mod error;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::env;
 
     use super::*;
 
-    #[test]
-    fn test() {
+    #[tokio::test]
+    async fn test_post() {
         let creds = api::oauth::PSCredentials::ClientCredentials {
-            id: "BC45D622FDEF5355".to_string(),
-            secret: "KQPx11bHK0H4nekcxOv9sA".to_string(),
+            id: env::var("PS_CLIENT_ID").unwrap().to_string(),
+            secret: env::var("PS_CLIENT_SECRET").unwrap().to_string(),
         };
-        let mut ps =
-            api::BlockingPSServer::new("rocky-ps.allette.com.au".to_string(), creds, None, None);
-    }
-
-    #[test]
-    fn test_post() {
-        let creds = api::oauth::PSCredentials::ClientCredentials {
-            id: "BC45D622FDEF5355".to_string(),
-            secret: "KQPx11bHK0H4nekcxOv9sA".to_string(),
-        };
-        let mut ps =
-            api::BlockingPSServer::new("rocky-ps.allette.com.au".to_string(), creds, None, None);
+        let mut ps = api::PSServer::new("rocky-ps.allette.com.au".to_string(), creds, None, None);
         println!(
             "{:?}",
             ps.checked_get("/ps/service/groups/test-netdox", None, None)
+                .await
                 .unwrap()
                 .text()
+                .await
                 .unwrap()
         );
     }
