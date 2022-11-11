@@ -33,7 +33,7 @@ impl PSServer {
         port: Option<usize>,
     ) -> Self {
         return PSServer {
-            hostname: hostname,
+            hostname,
             port: port.unwrap_or(443),
             scheme: scheme.unwrap_or(HttpScheme::Https),
             credentials,
