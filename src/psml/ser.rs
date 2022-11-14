@@ -1,4 +1,7 @@
-use std::{borrow::Cow, io::Write};
+use std::{
+    borrow::Cow,
+    io::{BufRead, Write},
+};
 
 use crate::{
     error::{PSError, PSResult},
@@ -13,7 +16,7 @@ use quick_xml::{
 // Convenience functions
 
 /// Decodes an attribute value and returns a PSResult.
-fn decode_attr<'a>(reader: &'a Reader<&[u8]>, attr: Attribute) -> PSResult<String> {
+fn decode_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResult<String> {
     match attr.decode_and_unescape_value(reader) {
         Err(err) => {
             return Err(PSError::ParseError {
@@ -73,14 +76,15 @@ fn write_text<W: Write>(writer: &mut Writer<W>, text: BytesText) -> PSResult<()>
 }
 
 /// Reads an event from a reader and returns a PSResult.
-fn read_event<'a>(reader: &'a mut Reader<&[u8]>) -> PSResult<Event<'a>> {
-    match reader.read_event() {
+fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'a>> {
+    let mut buf = Vec::new();
+    match reader.read_event_into(&mut buf) {
         Err(err) => {
             return Err(PSError::ParseError {
                 msg: format!("Failed to read event: {}", err),
             })
         }
-        Ok(event) => return Ok(event),
+        Ok(event) => return Ok(event.into_owned()),
     }
 }
 
@@ -90,7 +94,7 @@ pub trait PSMLObject: Sized {
     /// Returns the name of the element this psmlobject is defined by in psml.
     fn elem_name() -> &'static str;
     /// Returns an instance of this psmlobject from a reader which has just read the start tag for this object.
-    fn from_psml(reader: &mut Reader<&[u8]>, elem: BytesStart) -> PSResult<Self>;
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self>;
     /// Writes this object to a writer as psml.
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()>;
 }
@@ -99,7 +103,7 @@ pub trait PSMLObject: Sized {
 
 impl Property {
     /// Reads a property value into a string.
-    fn read_value(reader: &mut Reader<&[u8]>, _val_start: BytesStart) -> PSResult<String> {
+    fn read_value<R: BufRead>(reader: &mut Reader<R>, _val_start: BytesStart) -> PSResult<String> {
         let mut value = String::new();
         loop {
             match read_event(reader)? {
@@ -128,10 +132,11 @@ impl Property {
     }
 
     /// Reads value elements nested under a property.
-    fn read_values(reader: &mut Reader<&[u8]>, pname: &str) -> PSResult<Vec<String>> {
+    fn read_values<R: BufRead>(reader: &mut Reader<R>, pname: &str) -> PSResult<Vec<String>> {
+        let mut buf = Vec::new();
         let mut values = Vec::new();
         loop {
-            match reader.read_event() {
+            match reader.read_event_into(&mut buf) {
                 Err(err) => {
                     return Err(PSError::ParseError {
                         msg: format!(
@@ -178,7 +183,7 @@ impl PSMLObject for Property {
         return "property";
     }
 
-    fn from_psml(reader: &mut Reader<&[u8]>, elem: BytesStart) -> PSResult<Property> {
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Property> {
         if elem.name().as_ref() != b"property" {
             return Err(PSError::ParseError {
                 msg: format!(
