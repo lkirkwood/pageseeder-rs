@@ -173,24 +173,40 @@ fn read_property(reader: &mut Reader<&[u8]>, prop_start: BytesStart) -> PSResult
     });
 }
 
-// Property
+fn write_property(writer: &mut Writer<&mut [u8]>, property: Property) -> PSResult<()> {
+    let mut prop_elem = BytesStart::new("property");
+    prop_elem.push_attribute(Attribute {
+        key: QName("name".as_bytes()),
+        value: Cow::Borrowed(property.name.as_bytes()),
+    });
+    prop_elem.push_attribute(Attribute {
+        key: QName("title".as_bytes()),
+        value: Cow::Borrowed(
+            property
+                .title
+                .as_ref()
+                .unwrap_or(&"".to_string())
+                .as_bytes(),
+        ),
+    });
 
-// fn property_to_elem(writer: &mut Writer<&mut [u8]>) -> PSResult<()> {
-//     let mut prop_elem = BytesStart::new("property");
-//     prop_elem.push_attribute(Attribute {
-//         key: QName("name".as_bytes()),
-//         value: Cow::Borrowed(self.name.as_bytes()),
-//     });
-//     prop_elem.push_attribute(Attribute {
-//         key: QName("title".as_bytes()),
-//         value: Cow::Borrowed(self.title.as_ref().unwrap_or(&"".to_string()).as_bytes()),
-//     });
+    let single_val = property.value.len() <= 1;
+    if single_val == true {
+        prop_elem.push_attribute(Attribute {
+            key: QName("value".as_bytes()),
+            value: Cow::Borrowed(property.value.get(0).unwrap_or(&"".to_string()).as_bytes()),
+        });
+    }
 
-//     let single_val = self.value.len() <= 1;
-//     if single_val == true {
-//         prop_elem.push_attribute(Attribute {
-//             key: QName("value".as_bytes()),
-//             value: Cow::Borrowed(self.value.get(0).unwrap_or(&"".to_string()).as_bytes()),
-//         });
-//     }
-// }
+    write_elem_start(writer, prop_elem)?;
+
+    if single_val == false {
+        for val in property.value {
+            write_elem_start(writer, BytesStart::new("value"))?;
+            write_text(writer, BytesText::new(&val))?;
+            write_elem_end(writer, BytesEnd::new("value"))?;
+        }
+    }
+
+    return Ok(());
+}
