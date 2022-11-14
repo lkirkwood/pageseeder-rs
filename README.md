@@ -1,3 +1,3 @@
 # pageseeder-rs
 
-PageSeeder api in rust.
+High level PageSeeder api and PSML library in rust.
