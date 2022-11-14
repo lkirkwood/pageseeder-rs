@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use quick_xml::events::Event;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Property {
@@ -18,7 +19,7 @@ pub struct PropertiesFragment {
 pub struct Fragment {
     pub id: String,
     pub title: Option<String>,
-    pub text: String,
+    pub content: Vec<Event<'static>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
