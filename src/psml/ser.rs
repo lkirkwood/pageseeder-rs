@@ -13,6 +13,8 @@ use quick_xml::{
     Reader, Writer,
 };
 
+use super::model::PropertiesFragment;
+
 // Convenience functions
 
 /// Decodes an attribute value and returns a PSResult.
@@ -187,6 +189,7 @@ impl Property {
                         })
                     }
                 },
+                Ok(Event::Eof) => break,
                 _ => {}
             }
         }
@@ -208,7 +211,7 @@ impl PSMLObject for Property {
             match attr_res {
                 Err(err) => {
                     return Err(PSError::ParseError {
-                        msg: format!("Failed to decode property attribute: {:?}", err),
+                        msg: format!("Failed to get property attribute: {:?}", err),
                     })
                 }
                 Ok(attr) => match attr.key.as_ref() {
@@ -228,7 +231,7 @@ impl PSMLObject for Property {
 
         if pname.is_none() {
             return Err(PSError::ParseError {
-                msg: "Property missing name attribute".to_string(),
+                msg: "Property missing required 'name' attribute".to_string(),
             });
         }
 
@@ -244,18 +247,18 @@ impl PSMLObject for Property {
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut prop_elem = BytesStart::new("property");
         prop_elem.push_attribute(Attribute {
-            key: QName("name".as_bytes()),
+            key: QName(b"name"),
             value: Cow::Borrowed(self.name.as_bytes()),
         });
         prop_elem.push_attribute(Attribute {
-            key: QName("title".as_bytes()),
+            key: QName(b"title"),
             value: Cow::Borrowed(self.title.as_ref().unwrap_or(&"".to_string()).as_bytes()),
         });
 
         let single_val = self.value.len() <= 1;
         if single_val == true {
             prop_elem.push_attribute(Attribute {
-                key: QName("value".as_bytes()),
+                key: QName(b"value"),
                 value: Cow::Borrowed(self.value.get(0).unwrap_or(&"".to_string()).as_bytes()),
             });
         }
@@ -276,13 +279,116 @@ impl PSMLObject for Property {
     }
 }
 
+// PropertiesFragment
+
+impl PSMLObject for PropertiesFragment {
+    fn elem_name() -> &'static str {
+        return "properties-fragment";
+    }
+
+    fn from_psml<R: BufRead>(
+        reader: &mut Reader<R>,
+        elem: BytesStart,
+    ) -> PSResult<PropertiesFragment> {
+        Self::match_elem_name(&elem)?;
+        let mut frag_id = None;
+        let mut frag_title = None;
+        for attr in elem.attributes() {
+            match attr {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed to get properties fragment attribute: {:?}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"id" => frag_id = Some(decode_attr(reader, attr)?),
+                    b"title" => frag_title = Some(decode_attr(reader, attr)?),
+                    _ => {}
+                },
+            }
+        }
+
+        if frag_id.is_none() {
+            return Err(PSError::ParseError {
+                msg: "Properties fragment missing required 'id' attribute.".to_string(),
+            });
+        }
+
+        let mut buf = Vec::new();
+        let mut props = Vec::new();
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!(
+                            "Failed to read events after properties-fragment {} start: {:?}",
+                            frag_id.unwrap(),
+                            err
+                        ),
+                    })
+                }
+                Ok(Event::Start(prop_start)) => {
+                    props.push(Property::from_psml(reader, prop_start)?)
+                }
+                Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                    b"properties-fragment" => break,
+                    _ => {
+                        return Err(PSError::ParseError {
+                            msg: format!(
+                                "Unexpected element closed in properties-fragment: {:#?}",
+                                elem_end.name()
+                            ),
+                        })
+                    }
+                },
+                Ok(Event::Eof) => break,
+                _ => {}
+            }
+        }
+
+        return Ok(PropertiesFragment {
+            id: frag_id.unwrap(),
+            title: frag_title,
+            properties: props,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem_start = BytesStart::new("properties-fragment");
+
+        elem_start.push_attribute(Attribute {
+            key: QName(b"id"),
+            value: Cow::Borrowed(self.id.as_bytes()),
+        });
+        if self.title.is_some() {
+            elem_start.push_attribute(Attribute {
+                key: QName(b"title"),
+                value: Cow::Borrowed(self.title.as_ref().unwrap().as_bytes()),
+            });
+        }
+
+        write_elem_start(writer, elem_start)?;
+
+        for property in &self.properties {
+            property.to_psml(writer)?;
+        }
+
+        write_elem_end(writer, BytesEnd::new("properties-fragment"))?;
+
+        return Ok(());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
 
     use quick_xml::{events::Event, Reader, Writer};
 
-    use crate::{error::PSResult, psml::model::Property};
+    use crate::{
+        error::PSResult,
+        psml::model::{PropertiesFragment, Property},
+    };
 
     use super::PSMLObject;
 
@@ -335,14 +441,56 @@ mod tests {
     }
 
     #[test]
-    fn test_property_from_psml() {
+    fn property_from_psml() {
         let str_prop: Property = read_psmlobj(PROPERTY).unwrap();
         assert_eq!(property(), str_prop);
     }
 
     #[test]
-    fn test_propert_to_psml() {
+    fn property_to_psml() {
         let prop_str = write_psmlobj(property()).unwrap();
         assert_eq!(PROPERTY, prop_str);
+    }
+
+    // PropertiesFragment
+
+    const PROPERTIES_FRAGMENT: &'static str = "<properties-fragment id=\"pfrag_id\" title=\"PFrag Title\">\
+<property name=\"prop1\" title=\"Prop1 Title\" value=\"value1\"></property>\
+<property name=\"prop2\" title=\"Multival Prop(2) title\"><value>value2-1</value><value>value2-2</value>\
+<value>value2-3</value></property></properties-fragment>";
+
+    fn properties_fragment() -> PropertiesFragment {
+        return PropertiesFragment {
+            id: "pfrag_id".to_string(),
+            title: Some("PFrag Title".to_string()),
+            properties: vec![
+                Property {
+                    name: "prop1".to_string(),
+                    title: Some("Prop1 Title".to_string()),
+                    value: vec!["value1".to_string()],
+                },
+                Property {
+                    name: "prop2".to_string(),
+                    title: Some("Multival Prop(2) title".to_string()),
+                    value: vec![
+                        "value2-1".to_string(),
+                        "value2-2".to_string(),
+                        "value2-3".to_string(),
+                    ],
+                },
+            ],
+        };
+    }
+
+    #[test]
+    fn properties_fragment_from_psml() {
+        let str_prop: PropertiesFragment = read_psmlobj(PROPERTIES_FRAGMENT).unwrap();
+        assert_eq!(properties_fragment(), str_prop);
+    }
+
+    #[test]
+    fn properties_fragment_to_psml() {
+        let prop_str = write_psmlobj(properties_fragment()).unwrap();
+        assert_eq!(PROPERTIES_FRAGMENT, prop_str);
     }
 }
