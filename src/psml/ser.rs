@@ -13,7 +13,7 @@ use quick_xml::{
     Reader, Writer,
 };
 
-use super::model::PropertiesFragment;
+use super::model::{Fragment, PropertiesFragment};
 
 // Convenience functions
 
@@ -384,6 +384,108 @@ impl PSMLObject for PropertiesFragment {
     }
 }
 
+// Fragment
+
+fn read_fragment_content<'a, R: BufRead>(
+    reader: &'a mut Reader<R>,
+    frag_id: &str,
+) -> PSResult<Vec<Event<'static>>> {
+    let mut events = Vec::new();
+    let mut buf = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!("Failed reading events in fragment {}: {:?}", frag_id, err),
+                })
+            }
+            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                b"fragment" => break,
+                _ => events.push(Event::End(elem_end.into_owned())),
+            },
+            Ok(Event::Eof) => {
+                return Err(PSError::ParseError {
+                    msg: format!("Unexpected EOF in fragment {}", frag_id),
+                })
+            }
+            Ok(event) => events.push(event.into_owned()),
+        }
+    }
+    return Ok(events);
+}
+
+impl PSMLObject for Fragment {
+    fn elem_name() -> &'static str {
+        return "fragment";
+    }
+
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Fragment> {
+        Self::match_elem_name(&elem)?;
+        let mut frag_id = None;
+        let mut frag_title = None;
+        for attr in elem.attributes() {
+            match attr {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed to get fragment attribute: {:?}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"id" => frag_id = Some(decode_attr(reader, attr)?),
+                    b"title" => frag_title = Some(decode_attr(reader, attr)?),
+                    _ => {}
+                },
+            }
+        }
+
+        if frag_id.is_none() {
+            return Err(PSError::ParseError {
+                msg: "Fragment missing required 'id' attribute.".to_string(),
+            });
+        };
+
+        let events = read_fragment_content(reader, frag_id.as_ref().unwrap())?;
+
+        return Ok(Fragment {
+            id: frag_id.unwrap(),
+            title: frag_title,
+            content: events,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem_start = BytesStart::new("fragment");
+        elem_start.push_attribute(Attribute {
+            key: QName(b"id"),
+            value: Cow::Borrowed(self.id.as_bytes()),
+        });
+
+        if self.title.is_some() {
+            elem_start.push_attribute(Attribute {
+                key: QName(b"title"),
+                value: Cow::Borrowed(self.title.as_ref().unwrap().as_bytes()),
+            })
+        }
+
+        write_elem_start(writer, elem_start)?;
+
+        for event in &self.content {
+            match writer.write_event(event) {
+                Ok(()) => {}
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed writing content of fragment {}: {:?}", self.id, err),
+                    })
+                }
+            }
+        }
+
+        write_elem_end(writer, BytesEnd::new("fragment"))?;
+
+        return Ok(());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
@@ -392,15 +494,14 @@ mod tests {
 
     use crate::{
         error::PSResult,
-        psml::model::{PropertiesFragment, Property},
+        psml::model::{Fragment, PropertiesFragment, Property},
     };
 
-    use super::PSMLObject;
+    use super::{read_fragment_content, PSMLObject};
 
     /// Reads a psmlobj from a string.
     fn read_psmlobj<T: PSMLObject>(string: &str) -> PSResult<T> {
         let mut reader = Reader::from_str(string);
-        reader.trim_text(true);
         reader.expand_empty_elements(true);
 
         let elem_name = T::elem_name().as_bytes();
@@ -497,5 +598,51 @@ mod tests {
     fn properties_fragment_to_psml() {
         let prop_str = write_psmlobj(properties_fragment()).unwrap();
         assert_eq!(PROPERTIES_FRAGMENT, prop_str);
+    }
+
+    // Fragment
+
+    const FRAGMENT: &'static str = "<fragment id=\"frag_id\" title=\"Frag Title!\">\
+<p>This is normal text, this is <bold>bold</bold> text, this is <italic>italic</italic> text,\
+and this is <monospace>m o n o s p a c e</monospace> text!</p></fragment>";
+
+    fn fragment_content() -> Vec<Event<'static>> {
+        // TODO write better test fixture
+        let mut reader = Reader::from_str(FRAGMENT);
+        loop {
+            match reader.read_event() {
+                Err(err) => panic!("Read error: {:?}", err),
+                Ok(Event::Start(frag_start)) => match frag_start.name().as_ref() {
+                    b"fragment" => {
+                        return read_fragment_content(&mut reader, "testing fragment").unwrap()
+                    }
+                    _ => panic!(
+                        "Unexpected element in test fragment string: {:?}",
+                        frag_start.name()
+                    ),
+                },
+                Ok(event) => panic!("Unexpected event in test fragment string: {:?}", event),
+            }
+        }
+    }
+
+    fn fragment() -> Fragment {
+        return Fragment {
+            id: "frag_id".to_string(),
+            title: Some("Frag Title!".to_string()),
+            content: fragment_content(),
+        };
+    }
+
+    #[test]
+    fn fragment_from_psml() {
+        let str_fragment = read_psmlobj(FRAGMENT).unwrap();
+        assert_eq!(fragment(), str_fragment);
+    }
+
+    #[test]
+    fn fragment_to_psml() {
+        let fragment_str = write_psmlobj(fragment()).unwrap();
+        assert_eq!(FRAGMENT, fragment_str);
     }
 }
