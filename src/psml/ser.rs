@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, io::Write};
 
 use crate::{
     error::{PSError, PSResult},
@@ -25,7 +25,7 @@ fn decode_attr<'a>(reader: &'a Reader<&[u8]>, attr: Attribute) -> PSResult<Strin
 }
 
 /// Writes an element start to a writer and returns a PSResult.
-fn write_elem_start(writer: &mut Writer<&mut [u8]>, elem: BytesStart) -> PSResult<()> {
+fn write_elem_start<W: Write>(writer: &mut Writer<W>, elem: BytesStart) -> PSResult<()> {
     let name = elem.name().0.to_owned();
     match writer.write_event(Event::Start(elem)) {
         Ok(_) => return Ok(()),
@@ -43,7 +43,7 @@ fn write_elem_start(writer: &mut Writer<&mut [u8]>, elem: BytesStart) -> PSResul
 }
 
 /// Writes an element end to a writer and returns a PSResult.
-fn write_elem_end(writer: &mut Writer<&mut [u8]>, elem: BytesEnd) -> PSResult<()> {
+fn write_elem_end<W: Write>(writer: &mut Writer<W>, elem: BytesEnd) -> PSResult<()> {
     let name = elem.name().0.to_owned();
     match writer.write_event(Event::End(elem)) {
         Ok(_) => return Ok(()),
@@ -61,7 +61,7 @@ fn write_elem_end(writer: &mut Writer<&mut [u8]>, elem: BytesEnd) -> PSResult<()
 }
 
 /// Writes text to a writer and returns a PSResult.
-fn write_text(writer: &mut Writer<&mut [u8]>, text: BytesText) -> PSResult<()> {
+fn write_text<W: Write>(writer: &mut Writer<W>, text: BytesText) -> PSResult<()> {
     match writer.write_event(Event::Text(text)) {
         Ok(_) => return Ok(()),
         Err(err) => {
@@ -87,8 +87,12 @@ fn read_event<'a>(reader: &'a mut Reader<&[u8]>) -> PSResult<Event<'a>> {
 // PSMLObject
 
 pub trait PSMLObject: Sized {
+    /// Returns the name of the element this psmlobject is defined by in psml.
+    fn elem_name() -> &'static str;
+    /// Returns an instance of this psmlobject from a reader which has just read the start tag for this object.
     fn from_psml(reader: &mut Reader<&[u8]>, elem: BytesStart) -> PSResult<Self>;
-    fn to_psml(&self, writer: &mut Writer<&mut [u8]>) -> PSResult<()>;
+    /// Writes this object to a writer as psml.
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()>;
 }
 
 // Property
@@ -170,7 +174,10 @@ impl Property {
 }
 
 impl PSMLObject for Property {
-    /// Reads a property from a reader and the start element.
+    fn elem_name() -> &'static str {
+        return "property";
+    }
+
     fn from_psml(reader: &mut Reader<&[u8]>, elem: BytesStart) -> PSResult<Property> {
         if elem.name().as_ref() != b"property" {
             return Err(PSError::ParseError {
@@ -221,7 +228,7 @@ impl PSMLObject for Property {
         });
     }
 
-    fn to_psml(&self, writer: &mut Writer<&mut [u8]>) -> PSResult<()> {
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut prop_elem = BytesStart::new("property");
         prop_elem.push_attribute(Attribute {
             key: QName("name".as_bytes()),
@@ -250,6 +257,79 @@ impl PSMLObject for Property {
             }
         }
 
+        write_elem_end(writer, BytesEnd::new("property"))?;
+
         return Ok(());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use quick_xml::{events::Event, Reader, Writer};
+
+    use crate::{error::PSResult, psml::model::Property};
+
+    use super::PSMLObject;
+
+    /// Reads a psmlobj from a string.
+    fn read_psmlobj<T: PSMLObject>(string: &str) -> PSResult<T> {
+        let mut reader = Reader::from_str(string);
+        reader.trim_text(true);
+        reader.expand_empty_elements(true);
+
+        let elem_name = T::elem_name().as_bytes();
+        loop {
+            match reader.read_event() {
+                Err(err) => panic!("Read error: {}", err),
+                Ok(Event::Start(elem)) => match elem.name().as_ref() {
+                    _en if _en == elem_name => return T::from_psml(&mut reader, elem),
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
+    }
+
+    /// Writes a psmlobj to a string.
+    fn write_psmlobj(psmlobj: impl PSMLObject) -> PSResult<String> {
+        let mut writer = Writer::new(Cursor::new(Vec::new()));
+        psmlobj.to_psml(&mut writer)?;
+
+        return Ok(String::from_utf8(writer.into_inner().into_inner()).unwrap());
+    }
+
+    // Property
+
+    const PROPERTY: &'static str = "<property name=\"propname\" title=\"prop title\">\
+<value>value1</value>\
+<value>value2</value>\
+<value>value3</value>\
+</property>";
+
+    /// Returns a property with the same attributes as PROPERTY.
+    fn property() -> Property {
+        return Property {
+            name: "propname".to_string(),
+            title: Some("prop title".to_string()),
+            value: vec![
+                "value1".to_string(),
+                "value2".to_string(),
+                "value3".to_string(),
+            ],
+        };
+    }
+
+    #[test]
+    fn test_property_from_psml() {
+        let str_prop: Property = read_psmlobj(PROPERTY).unwrap();
+        assert_eq!(property(), str_prop);
+    }
+
+    #[test]
+    fn test_propert_to_psml() {
+        let prop_str = write_psmlobj(property()).unwrap();
+        assert_eq!(PROPERTY, prop_str);
     }
 }
