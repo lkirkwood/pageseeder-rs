@@ -119,82 +119,80 @@ pub trait PSMLObject: Sized {
 
 // Property
 
-impl Property {
-    /// Reads a property value into a string.
-    fn read_value<R: BufRead>(reader: &mut Reader<R>, _val_start: BytesStart) -> PSResult<String> {
-        let mut value = String::new();
-        loop {
-            match read_event(reader)? {
-                Event::Text(text) => match text.unescape() {
-                    Err(err) => {
-                        return Err(PSError::ParseError {
-                            msg: format!("Failed to unescape text: {}", err),
-                        })
-                    }
-                    Ok(cow) => {
-                        value.push_str(&cow);
-                    }
-                },
-                Event::End(val_end) => match val_end.name().as_ref() {
-                    b"value" => break,
-                    _ => {
-                        return Err(PSError::ParseError {
-                            msg: format!("Unknown element closed in value: {:#?}", val_end.name()),
-                        })
-                    }
-                },
-                _ => {}
-            }
-        }
-        return Ok(value);
-    }
-
-    /// Reads value elements nested under a property.
-    fn read_values<R: BufRead>(reader: &mut Reader<R>, pname: &str) -> PSResult<Vec<String>> {
-        let mut buf = Vec::new();
-        let mut values = Vec::new();
-        loop {
-            match reader.read_event_into(&mut buf) {
+/// Reads a property value into a string.
+fn read_value<R: BufRead>(reader: &mut Reader<R>, _val_start: BytesStart) -> PSResult<String> {
+    let mut value = String::new();
+    loop {
+        match read_event(reader)? {
+            Event::Text(text) => match text.unescape() {
                 Err(err) => {
                     return Err(PSError::ParseError {
+                        msg: format!("Failed to unescape text: {}", err),
+                    })
+                }
+                Ok(cow) => {
+                    value.push_str(&cow);
+                }
+            },
+            Event::End(val_end) => match val_end.name().as_ref() {
+                b"value" => break,
+                _ => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Unknown element closed in value: {:#?}", val_end.name()),
+                    })
+                }
+            },
+            _ => {}
+        }
+    }
+    return Ok(value);
+}
+
+/// Reads value elements nested under a property.
+fn read_values<R: BufRead>(reader: &mut Reader<R>, pname: &str) -> PSResult<Vec<String>> {
+    let mut buf = Vec::new();
+    let mut values = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!(
+                        "Failed reading events after property {} start: {:?}",
+                        pname, err
+                    ),
+                })
+            }
+            Ok(Event::Start(val_start)) => match val_start.name().as_ref() {
+                b"value" => {
+                    values.push(read_value(reader, val_start)?);
+                }
+                _ => {
+                    return Err(PSError::ParseError {
                         msg: format!(
-                            "Failed reading events after property {} start: {:?}",
-                            pname, err
+                            "Incorrect element in property {}: {:#?}",
+                            pname,
+                            val_start.name()
                         ),
                     })
                 }
-                Ok(Event::Start(val_start)) => match val_start.name().as_ref() {
-                    b"value" => {
-                        values.push(Property::read_value(reader, val_start)?);
-                    }
-                    _ => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Incorrect element in property {}: {:#?}",
-                                pname,
-                                val_start.name()
-                            ),
-                        })
-                    }
-                },
-                Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
-                    b"property" => break,
-                    _ => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Unknown element closed in property {}: {:#?}",
-                                pname,
-                                elem_end.name()
-                            ),
-                        })
-                    }
-                },
-                Ok(Event::Eof) => break,
-                _ => {}
-            }
+            },
+            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                b"property" => break,
+                _ => {
+                    return Err(PSError::ParseError {
+                        msg: format!(
+                            "Unknown element closed in property {}: {:#?}",
+                            pname,
+                            elem_end.name()
+                        ),
+                    })
+                }
+            },
+            Ok(Event::Eof) => break,
+            _ => {}
         }
-        return Ok(values);
     }
+    return Ok(values);
 }
 
 impl PSMLObject for Property {
@@ -235,7 +233,7 @@ impl PSMLObject for Property {
             });
         }
 
-        pvals.extend(Property::read_values(reader, pname.as_ref().unwrap())?);
+        pvals.extend(read_values(reader, pname.as_ref().unwrap())?);
 
         return Ok(Property {
             name: pname.unwrap(),
@@ -281,6 +279,7 @@ impl PSMLObject for Property {
 
 // PropertiesFragment
 
+/// Reads properties inside a properties-fragment from a reader.
 fn read_properties<'a, R: BufRead>(
     reader: &'a mut Reader<R>,
     frag_id: &str,
