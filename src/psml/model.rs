@@ -8,9 +8,13 @@ pub struct Property {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Fragment {
-    Normal { text: String },
-    Properties { properties: Vec<Property> },
+pub struct PropertiesFragment {
+    pub properties: Vec<Property>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Fragment {
+    pub text: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
