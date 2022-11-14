@@ -9,11 +9,15 @@ pub struct Property {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct PropertiesFragment {
+    pub id: String,
+    pub title: Option<String>,
     pub properties: Vec<Property>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Fragment {
+    pub id: String,
+    pub title: Option<String>,
     pub text: String,
 }
 
