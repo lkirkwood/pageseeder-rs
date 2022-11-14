@@ -93,6 +93,22 @@ fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'a>> 
 pub trait PSMLObject: Sized {
     /// Returns the name of the element this psmlobject is defined by in psml.
     fn elem_name() -> &'static str;
+
+    /// Returns a PSError if the type element name and actual element name do not match.
+    fn match_elem_name(elem: &BytesStart) -> PSResult<()> {
+        if Self::elem_name().as_bytes() != elem.name().as_ref() {
+            return Err(PSError::ParseError {
+                msg: format!(
+                    "Trying to parse {} from element {:?}",
+                    Self::elem_name(),
+                    elem.name()
+                ),
+            });
+        } else {
+            return Ok(());
+        }
+    }
+
     /// Returns an instance of this psmlobject from a reader which has just read the start tag for this object.
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self>;
     /// Writes this object to a writer as psml.
@@ -184,15 +200,7 @@ impl PSMLObject for Property {
     }
 
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Property> {
-        if elem.name().as_ref() != b"property" {
-            return Err(PSError::ParseError {
-                msg: format!(
-                    "Trying to parse property from start of element: {:?}",
-                    elem.name()
-                ),
-            });
-        };
-
+        Self::match_elem_name(&elem)?;
         let mut pname = None;
         let mut ptitle = None;
         let mut pvals = Vec::new();
