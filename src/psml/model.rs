@@ -22,8 +22,14 @@ pub struct Fragment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum Fragments {
+    Normal(Fragment),
+    Properties(PropertiesFragment),
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Section {
-    pub fragments: IndexMap<String, Fragment>,
+    pub fragments: IndexMap<String, Fragments>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
