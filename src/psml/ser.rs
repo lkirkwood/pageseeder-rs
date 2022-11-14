@@ -72,6 +72,18 @@ fn write_text(writer: &mut Writer<&mut [u8]>, text: BytesText) -> PSResult<()> {
     }
 }
 
+/// Reads an event from a reader and returns a PSResult.
+fn read_event<'a>(reader: &'a mut Reader<&[u8]>) -> PSResult<Event<'a>> {
+    match reader.read_event() {
+        Err(err) => {
+            return Err(PSError::ParseError {
+                msg: format!("Failed to read event: {}", err),
+            })
+        }
+        Ok(event) => return Ok(event),
+    }
+}
+
 // PSMLObject
 
 pub trait PSMLObject: Sized {
@@ -86,13 +98,8 @@ impl Property {
     fn read_value(reader: &mut Reader<&[u8]>, _val_start: BytesStart) -> PSResult<String> {
         let mut value = String::new();
         loop {
-            match reader.read_event() {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Failed reading events after value start: {:?}", err),
-                    })
-                }
-                Ok(Event::Text(text)) => match text.unescape() {
+            match read_event(reader)? {
+                Event::Text(text) => match text.unescape() {
                     Err(err) => {
                         return Err(PSError::ParseError {
                             msg: format!("Failed to unescape text: {}", err),
@@ -102,7 +109,7 @@ impl Property {
                         value.push_str(&cow);
                     }
                 },
-                Ok(Event::End(val_end)) => match val_end.name().as_ref() {
+                Event::End(val_end) => match val_end.name().as_ref() {
                     b"value" => break,
                     _ => {
                         return Err(PSError::ParseError {
@@ -110,7 +117,7 @@ impl Property {
                         })
                     }
                 },
-                Ok(_) => {}
+                _ => {}
             }
         }
         return Ok(value);
