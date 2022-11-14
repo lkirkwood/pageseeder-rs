@@ -281,6 +281,42 @@ impl PSMLObject for Property {
 
 // PropertiesFragment
 
+fn read_properties<'a, R: BufRead>(
+    reader: &'a mut Reader<R>,
+    frag_id: &str,
+) -> PSResult<Vec<Property>> {
+    let mut buf = Vec::new();
+    let mut props = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!(
+                        "Failed to read events after properties-fragment {} start: {:?}",
+                        frag_id, err
+                    ),
+                })
+            }
+            Ok(Event::Start(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
+            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                b"properties-fragment" => break,
+                _ => {
+                    return Err(PSError::ParseError {
+                        msg: format!(
+                            "Unexpected element closed in properties-fragment: {:#?}",
+                            elem_end.name()
+                        ),
+                    })
+                }
+            },
+            Ok(Event::Eof) => break,
+            _ => {}
+        }
+    }
+
+    return Ok(props);
+}
+
 impl PSMLObject for PropertiesFragment {
     fn elem_name() -> &'static str {
         return "properties-fragment";
@@ -314,37 +350,7 @@ impl PSMLObject for PropertiesFragment {
             });
         }
 
-        let mut buf = Vec::new();
-        let mut props = Vec::new();
-        loop {
-            match reader.read_event_into(&mut buf) {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Failed to read events after properties-fragment {} start: {:?}",
-                            frag_id.unwrap(),
-                            err
-                        ),
-                    })
-                }
-                Ok(Event::Start(prop_start)) => {
-                    props.push(Property::from_psml(reader, prop_start)?)
-                }
-                Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
-                    b"properties-fragment" => break,
-                    _ => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Unexpected element closed in properties-fragment: {:#?}",
-                                elem_end.name()
-                            ),
-                        })
-                    }
-                },
-                Ok(Event::Eof) => break,
-                _ => {}
-            }
-        }
+        let props = read_properties(reader, frag_id.as_ref().unwrap())?;
 
         return Ok(PropertiesFragment {
             id: frag_id.unwrap(),
