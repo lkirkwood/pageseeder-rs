@@ -1,3 +1,5 @@
+use indexmap::IndexMap;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
@@ -13,10 +15,10 @@ pub enum Fragment {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Section {
-    pub fragments: Vec<Fragment>,
+    pub fragments: IndexMap<String, Fragment>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Document {
-    pub sections: Vec<Section>,
+    pub sections: IndexMap<String, Section>,
 }

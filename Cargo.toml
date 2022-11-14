@@ -12,8 +12,9 @@ serde = { version = "1.0.143", features = ["derive"] }
 serde_json = { version = "1.0.85", optional = true }
 chrono = { version ="0.4.22", optional = true }
 tokio = { version = "1.21.0", features = ["full"], optional = true }
+indexmap = { version = "1.9.1", optional = true }
 
 [features]
 default = ["api", "psml"]
 api = ["dep:tokio", "dep:reqwest", "dep:serde_json", "dep:chrono"]
-psml = ["dep:quick-xml"]
+psml = ["dep:quick-xml", "dep:indexmap"]
