@@ -274,174 +274,14 @@ impl PSMLObject for XRef {
             )
         }
 
-        write_text(writer, BytesText::new(&self.content));
-        write_elem_end(writer, BytesEnd::new("xref"));
+        write_text(writer, BytesText::new(&self.content))?;
+        write_elem_end(writer, BytesEnd::new("xref"))?;
 
         return Ok(());
     }
 }
 
 // Property
-
-/// Reads a property value into a string.
-fn read_value<R: BufRead>(reader: &mut Reader<R>, _val_start: BytesStart) -> PSResult<String> {
-    let mut value = String::new();
-    loop {
-        match read_event(reader)? {
-            Event::Text(text) => match text.unescape() {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Failed to unescape text: {}", err),
-                    })
-                }
-                Ok(cow) => {
-                    value.push_str(&cow);
-                }
-            },
-            Event::End(val_end) => match val_end.name().as_ref() {
-                b"value" => break,
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Unknown element closed in value: {:#?}", val_end.name()),
-                    })
-                }
-            },
-            _ => {}
-        }
-    }
-    return Ok(value);
-}
-
-/// Reads value elements nested under a property.
-fn read_values<R: BufRead>(reader: &mut Reader<R>, pname: &str) -> PSResult<Vec<String>> {
-    let mut buf = Vec::new();
-    let mut values = Vec::new();
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Err(err) => {
-                return Err(PSError::ParseError {
-                    msg: format!(
-                        "Failed reading events after property {} start: {:?}",
-                        pname, err
-                    ),
-                })
-            }
-            Ok(Event::Start(val_start)) => match val_start.name().as_ref() {
-                b"value" => {
-                    values.push(read_value(reader, val_start)?);
-                }
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Incorrect element in property {}: {:#?}",
-                            pname,
-                            val_start.name()
-                        ),
-                    })
-                }
-            },
-            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
-                b"property" => break,
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unknown element closed in property {}: {:#?}",
-                            pname,
-                            elem_end.name()
-                        ),
-                    })
-                }
-            },
-            Ok(Event::Eof) => break,
-            _ => {}
-        }
-    }
-    return Ok(values);
-}
-
-fn read_property_events<'a, R: BufRead>(
-    reader: &'a mut Reader<R>,
-    datatype: &PropertyDatatype,
-) -> PSResult<Vec<Event<'static>>> {
-    let mut event_buf = Vec::new();
-    loop {
-        match read_event(reader)? {
-            Event::Start(elem) => match datatype {
-                PropertyDatatype::String | PropertyDatatype::Date => match elem.name().as_ref() {
-                    b"value" => {}
-                    other => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Element {:?} not allowed in property with datatype: {}",
-                                elem.name(),
-                                datatype.to_str()
-                            ),
-                        })
-                    }
-                },
-                PropertyDatatype::XRef => match elem.name().as_ref() {
-                    b"xref" => event_buf.push(Event::Start(elem)),
-                    other => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Element {:?} not allowed in property with datatype: xref",
-                                elem.name(),
-                            ),
-                        })
-                    }
-                },
-                PropertyDatatype::Link => match elem.name().as_ref() {
-                    b"link" => event_buf.push(Event::Start(elem)),
-                    other => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Element {:?} not allowed in property with datatype: link",
-                                other
-                            ),
-                        })
-                    }
-                },
-                PropertyDatatype::Markdown => match elem.name().as_ref() {
-                    b"markdown" => event_buf.push(Event::Start(elem)),
-                    other => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Element {:?} not allowed in property with datatype: markdown",
-                                other
-                            ),
-                        })
-                    }
-                },
-                PropertyDatatype::Markup => match elem.name().as_ref() {
-                    b"heading" | b"para" | b"list" | b"nlist" | b"preformat" | b"br" | b"bold"
-                    | b"italic" | b"inline" | b"monospace" | b"underline" => {
-                        event_buf.push(Event::Start(elem))
-                    }
-                    other => {
-                        return Err(PSError::ParseError {
-                            msg: format!(
-                                "Element {:?} not allowed in property with datatype: markup",
-                                other
-                            ),
-                        })
-                    }
-                },
-            },
-            Event::End(elem) => match elem.name().as_ref() {
-                b"property" => break,
-                _ => event_buf.push(Event::End(elem)),
-            },
-            Event::Eof => {
-                return Err(PSError::ParseError {
-                    msg: "Unexpected EOF while parsing property content".to_string(),
-                })
-            }
-            other => event_buf.push(other),
-        }
-    }
-
-    return Ok(event_buf);
-}
 
 /// Reads values under a property with string or date datatypes.
 fn read_string_property_values<'a, R: BufRead>(
@@ -454,7 +294,7 @@ fn read_string_property_values<'a, R: BufRead>(
         match read_event(reader)? {
             Event::Start(elem) => match elem.name().as_ref() {
                 b"value" => {}
-                other => {
+                _ => {
                     return Err(PSError::ParseError {
                         msg: format!(
                             "Element {:?} not allowed in property with datatype: {}",
@@ -469,8 +309,11 @@ fn read_string_property_values<'a, R: BufRead>(
                     values.push(PropertyValue::String(current_val));
                     current_val = String::new();
                 }
-                b"property" => break,
-                other => {
+                b"property" => {
+                    println!("end property");
+                    break;
+                }
+                _ => {
                     return Err(PSError::ParseError {
                         msg: format!(
                             "Element {:?} not allowed in property with datatype: string/date",
@@ -623,7 +466,10 @@ fn read_markup_property_values<'a, R: BufRead>(
                 | b"italic" | b"inline" | b"monospace" | b"underline" => {
                     event_buf.push(Event::End(elem))
                 }
-                b"property" => break,
+                b"property" => {
+                    values.push(PropertyValue::Markup(event_buf));
+                    break;
+                }
                 other => {
                     return Err(PSError::ParseError {
                         msg: format!(
@@ -657,6 +503,65 @@ fn read_property_values<'a, R: BufRead>(
         PropertyDatatype::Markdown => return read_markdown_property_values(reader),
         PropertyDatatype::Markup => return read_markup_property_values(reader),
     }
+}
+
+/// Writes values for a property with multiple.
+fn write_property_values<W: Write>(
+    writer: &mut Writer<W>,
+    values: &Vec<PropertyValue>,
+) -> PSResult<()> {
+    for val in values {
+        match val {
+            PropertyValue::String(string) => {
+                write_elem_start(writer, BytesStart::new("value"))?;
+                write_text(writer, BytesText::new(string))?;
+                write_elem_end(writer, BytesEnd::new("value"))?;
+            }
+            PropertyValue::XRef(xref) => {
+                xref.to_psml(writer)?;
+            }
+            PropertyValue::Link(events) => {
+                for event in events {
+                    match writer.write_event(event) {
+                        Err(err) => {
+                            return Err(PSError::ParseError {
+                                msg: format!("Failed to write property link content: {:?}", err),
+                            })
+                        }
+                        Ok(_) => {}
+                    }
+                }
+            }
+            PropertyValue::Markdown(events) => {
+                for event in events {
+                    match writer.write_event(event) {
+                        Err(err) => {
+                            return Err(PSError::ParseError {
+                                msg: format!(
+                                    "Failed to write property markdown content: {:?}",
+                                    err
+                                ),
+                            })
+                        }
+                        Ok(_) => {}
+                    }
+                }
+            }
+            PropertyValue::Markup(events) => {
+                for event in events {
+                    match writer.write_event(event) {
+                        Err(err) => {
+                            return Err(PSError::ParseError {
+                                msg: format!("Failed to write property markup content: {:?}", err),
+                            })
+                        }
+                        Ok(_) => {}
+                    }
+                }
+            }
+        }
+    }
+    return Ok(());
 }
 
 impl PSMLObject for Property {
@@ -716,7 +621,7 @@ impl PSMLObject for Property {
             | ((datatype != PropertyDatatype::String) & (datatype != PropertyDatatype::Date))
         {
             values.extend(read_property_values(reader, &datatype)?);
-        }
+        };
 
         if pname.is_none() {
             return Err(PSError::ParseError {
@@ -734,42 +639,43 @@ impl PSMLObject for Property {
     }
 
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem_start = BytesStart::new("property");
+        write_attr(&mut elem_start, "name", self.name.as_bytes());
+        write_attr_if_some(&mut elem_start, "title", self.title.as_ref());
+        write_attr(
+            &mut elem_start,
+            "multiple",
+            self.multiple.to_string().as_bytes(),
+        );
+        write_attr(
+            &mut elem_start,
+            "datatype",
+            self.datatype.to_str().as_bytes(),
+        );
+
+        let num_values = self.values.len();
+        if num_values == 0 {
+            write_attr(&mut elem_start, "value", &[])
+        } else if num_values == 1 {
+            let val = self.values.get(0);
+            if val.is_some() {
+                match val.unwrap() {
+                    PropertyValue::String(string) => {
+                        write_attr(&mut elem_start, "value", string.as_bytes());
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        write_elem_start(writer, elem_start)?;
+        if num_values > 1 {
+            write_property_values(writer, &self.values)?;
+        }
+        write_elem_end(writer, BytesEnd::new("property"))?;
+
         return Ok(());
     }
-
-    // fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
-    //     let mut prop_elem = BytesStart::new("property");
-    //     prop_elem.push_attribute(Attribute {
-    //         key: QName(b"name"),
-    //         value: Cow::Borrowed(self.name.as_bytes()),
-    //     });
-    //     prop_elem.push_attribute(Attribute {
-    //         key: QName(b"title"),
-    //         value: Cow::Borrowed(self.title.as_ref().unwrap_or(&"".to_string()).as_bytes()),
-    //     });
-
-    //     let single_val = self.value.len() <= 1;
-    //     if single_val == true {
-    //         prop_elem.push_attribute(Attribute {
-    //             key: QName(b"value"),
-    //             value: Cow::Borrowed(self.value.get(0).unwrap_or(&"".to_string()).as_bytes()),
-    //         });
-    //     }
-
-    //     write_elem_start(writer, prop_elem)?;
-
-    //     if single_val == false {
-    //         for val in &self.value {
-    //             write_elem_start(writer, BytesStart::new("value"))?;
-    //             write_text(writer, BytesText::new(val))?;
-    //             write_elem_end(writer, BytesEnd::new("value"))?;
-    //         }
-    //     }
-
-    //     write_elem_end(writer, BytesEnd::new("property"))?;
-
-    //     return Ok(());
-    // }
 }
 
 // PropertiesFragment
@@ -1023,7 +929,7 @@ mod tests {
     // Property
 
     const PROPERTY: &'static str =
-        "<property name=\"propname\" title=\"prop title\" multiple=\"true\">\
+        "<property name=\"propname\" title=\"prop title\" multiple=\"true\" datatype=\"string\">\
     <value>value1</value>\
     <value>value2</value>\
     <value>value3</value>\
@@ -1058,45 +964,50 @@ mod tests {
 
     // PropertiesFragment
 
-    // const PROPERTIES_FRAGMENT: &'static str = "<properties-fragment id=\"pfrag_id\" title=\"PFrag Title\">\
-    // <property name=\"prop1\" title=\"Prop1 Title\" value=\"value1\"></property>\
-    // <property name=\"prop2\" title=\"Multival Prop(2) title\"><value>value2-1</value><value>value2-2</value>\
-    // <value>value2-3</value></property></properties-fragment>";
+    const PROPERTIES_FRAGMENT: &'static str = "<properties-fragment id=\"pfrag_id\" title=\"PFrag Title\">\
+    <property name=\"prop1\" title=\"Prop1 Title\" multiple=\"false\" datatype=\"string\" value=\"value1\"></property>\
+    <property name=\"prop2\" title=\"Multival Prop(2) title\" multiple=\"true\" datatype=\"string\">\
+    <value>value2-1</value><value>value2-2</value>\
+    <value>value2-3</value></property></properties-fragment>";
 
-    // fn properties_fragment() -> PropertiesFragment {
-    //     return PropertiesFragment {
-    //         id: "pfrag_id".to_string(),
-    //         title: Some("PFrag Title".to_string()),
-    //         properties: vec![
-    //             Property {
-    //                 name: "prop1".to_string(),
-    //                 title: Some("Prop1 Title".to_string()),
-    //                 value: vec!["value1".to_string()],
-    //             },
-    //             Property {
-    //                 name: "prop2".to_string(),
-    //                 title: Some("Multival Prop(2) title".to_string()),
-    //                 value: vec![
-    //                     "value2-1".to_string(),
-    //                     "value2-2".to_string(),
-    //                     "value2-3".to_string(),
-    //                 ],
-    //             },
-    //         ],
-    //     };
-    // }
+    fn properties_fragment() -> PropertiesFragment {
+        return PropertiesFragment {
+            id: "pfrag_id".to_string(),
+            title: Some("PFrag Title".to_string()),
+            properties: vec![
+                Property {
+                    name: "prop1".to_string(),
+                    title: Some("Prop1 Title".to_string()),
+                    multiple: false,
+                    datatype: PropertyDatatype::String,
+                    values: vec![PropertyValue::String("value1".to_string())],
+                },
+                Property {
+                    name: "prop2".to_string(),
+                    title: Some("Multival Prop(2) title".to_string()),
+                    multiple: true,
+                    datatype: PropertyDatatype::String,
+                    values: vec![
+                        PropertyValue::String("value2-1".to_string()),
+                        PropertyValue::String("value2-2".to_string()),
+                        PropertyValue::String("value2-3".to_string()),
+                    ],
+                },
+            ],
+        };
+    }
 
-    // #[test]
-    // fn properties_fragment_from_psml() {
-    //     let str_prop: PropertiesFragment = read_psmlobj(PROPERTIES_FRAGMENT).unwrap();
-    //     assert_eq!(properties_fragment(), str_prop);
-    // }
+    #[test]
+    fn properties_fragment_from_psml() {
+        let str_prop: PropertiesFragment = read_psmlobj(PROPERTIES_FRAGMENT).unwrap();
+        assert_eq!(properties_fragment(), str_prop);
+    }
 
-    // #[test]
-    // fn properties_fragment_to_psml() {
-    //     let prop_str = write_psmlobj(properties_fragment()).unwrap();
-    //     assert_eq!(PROPERTIES_FRAGMENT, prop_str);
-    // }
+    #[test]
+    fn properties_fragment_to_psml() {
+        let prop_str = write_psmlobj(properties_fragment()).unwrap();
+        assert_eq!(PROPERTIES_FRAGMENT, prop_str);
+    }
 
     // Fragment
 
