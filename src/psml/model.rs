@@ -27,6 +27,16 @@ impl XRefDisplayKind {
             }),
         }
     }
+
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::Document => "document",
+            Self::DocumentManual => "document+manual",
+            Self::DocumentFragment => "document+fragment",
+            Self::Manual => "manual",
+            Self::Template => "template",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -52,31 +62,31 @@ impl XRefKind {
 #[derive(Debug, PartialEq, Eq)]
 pub struct XRef {
     /// Destination uriid.
-    uriid: Option<String>,
+    pub uriid: Option<String>,
     /// Destination docid.
-    docid: Option<String>,
+    pub docid: Option<String>,
     /// Destination href.#
-    href: Option<String>,
+    pub href: Option<String>,
     /// Text content to display instead of xref.
-    content: String,
+    pub content: String,
     /// XRef config name.
-    config: Option<String>,
+    pub config: Option<String>,
     /// How target link text should be displayed.
-    display: XRefDisplayKind,
+    pub display: XRefDisplayKind,
     /// ID of fragment to link to.
-    frag_id: Option<String>,
+    pub frag_id: Option<String>,
     /// Comma separated xref labels.
-    labels: Vec<String>,
+    pub labels: Vec<String>,
     /// Level for heading numbering of target document (1-5).
-    level: Option<String>,
+    pub level: Option<String>,
     /// Whether xref is bidirectional.
-    reverselink: bool,
+    pub reverselink: bool,
     /// Manually entered title for reverse xref.
-    reversetitle: Option<String>,
+    pub reversetitle: Option<String>,
     /// Manually entered title for xref.
-    title: Option<String>,
+    pub title: Option<String>,
     /// XRef type
-    xref_type: Option<XRefKind>,
+    pub xref_type: Option<XRefKind>,
 }
 
 // Property
