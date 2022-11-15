@@ -13,7 +13,7 @@ use quick_xml::{
     Reader, Writer,
 };
 
-use super::model::{Fragment, PropertiesFragment};
+use super::model::{Fragment, PropertiesFragment, XRef, XRefDisplayKind, XRefKind};
 
 // Convenience functions
 
@@ -26,6 +26,20 @@ fn decode_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResu
             })
         }
         Ok(val) => Ok(val.into_owned()),
+    }
+}
+
+fn write_attr(elem: BytesStart, key: &str, value: &[u8]) {
+    elem.push_attribute(Attribute {
+        key: QName(key.as_bytes()),
+        value: Cow::Borrowed(value),
+    });
+}
+
+/// Writes a attribute to an element if it is Some.
+fn write_attr_if_some(elem: BytesStart, key: &str, value: Option<String>) {
+    if value.is_some() {
+        write_attr(elem, key, value.unwrap().as_bytes().as_ref())
     }
 }
 
@@ -115,6 +129,154 @@ pub trait PSMLObject: Sized {
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self>;
     /// Writes this object to a writer as psml.
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()>;
+}
+
+// XRef
+
+/// Reads the text content of an xref from a reader.
+fn read_xref_content<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<String> {
+    let mut outstr = String::new();
+    let mut buf = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!("Failed reading contents of xref: {:?}", err),
+                })
+            }
+            Ok(Event::Text(text)) => match String::from_utf8(text.to_vec()) {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed decoding xref content as utf-8: {}", err),
+                    })
+                }
+                Ok(string) => outstr.push_str(&string),
+            },
+            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                b"xref" => break,
+                other => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Unexpected element closed in xref: {:?}", other),
+                    })
+                }
+            },
+            _ => {}
+        }
+    }
+
+    return Ok(outstr);
+}
+
+impl PSMLObject for XRef {
+    fn elem_name() -> &'static str {
+        return "xref";
+    }
+
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<XRef> {
+        Self::match_elem_name(&elem)?;
+
+        let mut uriid = None;
+        let mut docid = None;
+        let mut href = None;
+        let mut content = String::new();
+        let mut config = None;
+        let mut display = XRefDisplayKind::Document;
+        let mut frag_id = None;
+        let mut labels = Vec::new();
+        let mut level = None;
+        let mut reverselink = true;
+        let mut reversetitle = None;
+        let mut title = None;
+        let mut xref_type = None;
+
+        for attr_res in elem.attributes() {
+            match attr_res {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed to read attribute on xref: {}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"uriid" => uriid = Some(decode_attr(reader, attr)?),
+                    b"docid" => docid = Some(decode_attr(reader, attr)?),
+                    b"href" => href = Some(decode_attr(reader, attr)?),
+                    b"config" => config = Some(decode_attr(reader, attr)?),
+                    b"display" => display = XRefDisplayKind::from_str(&decode_attr(reader, attr)?)?,
+                    b"frag" => frag_id = Some(decode_attr(reader, attr)?),
+                    b"labels" => labels.extend(
+                        decode_attr(reader, attr)?
+                            .split(',')
+                            .map(|s| s.to_string())
+                            .collect::<Vec<String>>(),
+                    ),
+                    b"level" => level = Some(decode_attr(reader, attr)?),
+                    b"reverselink" => match decode_attr(reader, attr)?.as_ref() {
+                        "true" => reverselink = true,
+                        "false" => reverselink = false,
+                        other => {
+                            return Err(PSError::ParseError {
+                                msg: format!("Unknown value for reverselink: {}", other),
+                            })
+                        }
+                    },
+                    b"reversetitle" => reversetitle = Some(decode_attr(reader, attr)?),
+                    b"title" => title = Some(decode_attr(reader, attr)?),
+                    b"type" => xref_type = Some(XRefKind::from_str(&decode_attr(reader, attr)?)?),
+                    _ => {}
+                },
+            }
+        }
+
+        content.push_str(&read_xref_content(reader)?);
+
+        return Ok(XRef {
+            uriid,
+            docid,
+            href,
+            content,
+            config,
+            display,
+            frag_id,
+            labels,
+            level,
+            reverselink,
+            reversetitle,
+            title,
+            xref_type,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem_start = BytesStart::new("xref");
+        write_attr_if_some(elem_start, "uriid", self.uriid);
+        write_attr_if_some(elem_start, "docid", self.docid);
+        write_attr_if_some(elem_start, "href", self.href);
+        write_attr_if_some(elem_start, "config", self.config);
+        write_attr(elem_start, "display", self.display.to_str().as_bytes());
+        write_attr_if_some(elem_start, "frag", self.frag_id);
+        if self.labels.len() > 0 {
+            write_attr(elem_start, "labels", self.labels.join(",").as_bytes())
+        }
+        write_attr_if_some(elem_start, "level", self.level);
+        write_attr(
+            elem_start,
+            "reverselink",
+            self.reverselink.to_string().as_bytes(),
+        );
+        write_attr_if_some(elem_start, "title", self.title);
+        if self.xref_type.is_some() {
+            write_attr(
+                elem_start,
+                "type",
+                self.xref_type.unwrap().to_str().as_bytes(),
+            )
+        }
+
+        write_text(writer, BytesText::new(&self.content));
+        write_elem_end(writer, BytesEnd::new("xref"));
+
+        return Ok(());
+    }
 }
 
 // Property
