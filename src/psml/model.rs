@@ -99,17 +99,49 @@ pub struct XRef {
 
 // Property
 
+/// Property datatype attribute values.
+/// Does not support custom datatypes - they will be converted to "string".
 #[derive(Debug, PartialEq, Eq)]
-pub enum PropertyValue {
-    XRef(XRef),
-    String(String),
+pub enum PropertyDatatype {
+    String,
+    Date,
+    XRef,
+    Link,
+    Markdown,
+    Markup,
+}
+
+impl PropertyDatatype {
+    pub fn from_str(string: &str) -> PropertyDatatype {
+        match string {
+            "date" => PropertyDatatype::Date,
+            "xref" => PropertyDatatype::XRef,
+            "link" => PropertyDatatype::Link,
+            "markdown" => PropertyDatatype::Markdown,
+            "markup" => PropertyDatatype::Markup,
+            _ => PropertyDatatype::String,
+        }
+    }
+
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::String => "string",
+            Self::Date => "date",
+            Self::XRef => "xref",
+            Self::Link => "link",
+            Self::Markdown => "markdown",
+            Self::Markup => "markup",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
     pub title: Option<String>,
-    pub value: Vec<PropertyValue>,
+    pub datatype: PropertyDatatype,
+    pub multiple: bool,
+    pub values: Vec<Event<'static>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
