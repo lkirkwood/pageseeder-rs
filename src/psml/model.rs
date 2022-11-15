@@ -57,6 +57,14 @@ impl XRefKind {
             }),
         }
     }
+
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Alternate => "alternate",
+            Self::Math => "math",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
