@@ -1,11 +1,97 @@
 use indexmap::IndexMap;
 use quick_xml::events::Event;
 
+use crate::error::{PSError, PSResult};
+
+// XRef
+#[derive(Debug, PartialEq, Eq)]
+pub enum XRefDisplayKind {
+    Document,
+    DocumentManual,
+    DocumentFragment,
+    Manual,
+    Template,
+}
+
+impl XRefDisplayKind {
+    /// Returns xref display kind from string.
+    pub fn from_str(string: &str) -> PSResult<XRefDisplayKind> {
+        match string {
+            "document" => Ok(XRefDisplayKind::Document),
+            "document+manual" => Ok(XRefDisplayKind::DocumentManual),
+            "document+fragment" => Ok(XRefDisplayKind::DocumentFragment),
+            "manual" => Ok(XRefDisplayKind::Manual),
+            "template" => Ok(XRefDisplayKind::Template),
+            other => Err(PSError::ParseError {
+                msg: format!("Unknown exref display kind: {}", other),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum XRefKind {
+    None,
+    Alternate,
+    Math,
+}
+
+impl XRefKind {
+    pub fn from_str(string: &str) -> PSResult<XRefKind> {
+        match string {
+            "none" => Ok(XRefKind::None),
+            "alternate" => Ok(XRefKind::Alternate),
+            "math" => Ok(XRefKind::Math),
+            other => Err(PSError::ParseError {
+                msg: format!("Unknown xref type {}", other),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct XRef {
+    /// Destination uriid.
+    uriid: Option<String>,
+    /// Destination docid.
+    docid: Option<String>,
+    /// Destination href.#
+    href: Option<String>,
+    /// Text content to display instead of xref.
+    content: String,
+    /// XRef config name.
+    config: Option<String>,
+    /// How target link text should be displayed.
+    display: XRefDisplayKind,
+    /// ID of fragment to link to.
+    frag_id: Option<String>,
+    /// Comma separated xref labels.
+    labels: Vec<String>,
+    /// Level for heading numbering of target document (1-5).
+    level: Option<String>,
+    /// Whether xref is bidirectional.
+    reverselink: bool,
+    /// Manually entered title for reverse xref.
+    reversetitle: Option<String>,
+    /// Manually entered title for xref.
+    title: Option<String>,
+    /// XRef type
+    xref_type: Option<XRefKind>,
+}
+
+// Property
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PropertyValue {
+    XRef(XRef),
+    String(String),
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
     pub title: Option<String>,
-    pub value: Vec<String>,
+    pub value: Vec<PropertyValue>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -13,6 +99,13 @@ pub struct PropertiesFragment {
     pub id: String,
     pub title: Option<String>,
     pub properties: Vec<Property>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct XRefFragment {
+    pub id: String,
+    pub title: Option<String>,
+    pub xrefs: Vec<XRef>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,6 +119,7 @@ pub struct Fragment {
 pub enum Fragments {
     Normal(Fragment),
     Properties(PropertiesFragment),
+    XRef(XRefFragment),
 }
 
 #[derive(Debug, PartialEq, Eq)]
