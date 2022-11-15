@@ -139,9 +139,9 @@ impl PropertyDatatype {
 pub enum PropertyValue {
     String(String),
     XRef(XRef),
-    Link(Event<'static>),
-    Markdown(Event<'static>),
-    Markup(Event<'static>),
+    Link(Vec<Event<'static>>),
+    Markdown(Vec<Event<'static>>),
+    Markup(Vec<Event<'static>>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
