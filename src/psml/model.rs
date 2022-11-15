@@ -136,12 +136,21 @@ impl PropertyDatatype {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum PropertyValue {
+    String(String),
+    XRef(XRef),
+    Link(Event<'static>),
+    Markdown(Event<'static>),
+    Markup(Event<'static>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct Property {
     pub name: String,
     pub title: Option<String>,
     pub datatype: PropertyDatatype,
     pub multiple: bool,
-    pub values: Vec<Event<'static>>,
+    pub values: Vec<PropertyValue>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
