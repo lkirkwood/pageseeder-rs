@@ -310,7 +310,6 @@ fn read_string_property_values<'a, R: BufRead>(
                     current_val = String::new();
                 }
                 b"property" => {
-                    println!("end property");
                     break;
                 }
                 _ => {
@@ -621,7 +620,20 @@ impl PSMLObject for Property {
             | ((datatype != PropertyDatatype::String) & (datatype != PropertyDatatype::Date))
         {
             values.extend(read_property_values(reader, &datatype)?);
-        };
+        } else {
+            // using value from attribute
+            loop {
+                match read_event(reader)? {
+                    Event::End(elem_end) => match elem_end.name().as_ref() {
+                        b"property" => break,
+                        other => return Err(PSError::ParseError { 
+                            msg: format!("Unexpected element closed in property with value from attribute: {:?}", other)
+                        })
+                    },
+                    _ => {}
+                }
+            }
+        }
 
         if pname.is_none() {
             return Err(PSError::ParseError {
@@ -697,7 +709,9 @@ fn read_properties<'a, R: BufRead>(
                     ),
                 })
             }
-            Ok(Event::Start(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
+            Ok(Event::Start(prop_start)) => {
+                props.push(Property::from_psml(reader, prop_start)?)
+            }
             Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
                 b"properties-fragment" => break,
                 _ => {
@@ -706,7 +720,7 @@ fn read_properties<'a, R: BufRead>(
                             "Unexpected element closed in properties-fragment: {:#?}",
                             elem_end.name()
                         ),
-                    })
+                    });
                 }
             },
             Ok(Event::Eof) => break,
