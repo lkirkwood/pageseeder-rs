@@ -515,6 +515,7 @@ name = "pageseeder"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "indexmap",
  "quick-xml",
  "reqwest",
  "serde",
