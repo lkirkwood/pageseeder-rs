@@ -17,7 +17,43 @@ use super::model::{
     Fragment, PropertiesFragment, PropertyDatatype, PropertyValue, XRef, XRefDisplayKind, XRefKind,
 };
 
+// Convenience macros
+
+/// Returns a PSError::ParseError complaining of an unexpected element called "name".
+/// Optionally you can provide whether the element was closed or opened with "op",
+/// and additional detail as to where the error occured with "context".
+macro_rules! unexpected_elem {
+    ($name:expr) => {
+        Err(PSError::ParseError {
+            msg: format!("Unexpected element: {}", $name),
+        })
+    };
+    ($name:expr, $op:expr) => {
+        Err(PSError::ParseError {
+            msg: format!("Unexpected element {}: {}", $op, !$name),
+        })
+    };
+    ($name:expr, $op:expr, $context:expr) => {
+        Err(PSError::ParseError {
+            msg: format!("Unexpected element {} in {}: {}", $op, $context, $name),
+        })
+    };
+}
+
 // Convenience functions
+
+/// Reads an event from a reader and returns a PSResult.
+fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'static>> {
+    let mut buf = Vec::new();
+    match reader.read_event_into(&mut buf) {
+        Err(err) => {
+            return Err(PSError::ParseError {
+                msg: format!("Failed to read event: {}", err),
+            })
+        }
+        Ok(event) => return Ok(event.into_owned()),
+    }
+}
 
 /// Decodes an attribute value and returns a PSResult.
 fn decode_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResult<String> {
@@ -31,6 +67,7 @@ fn decode_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResu
     }
 }
 
+/// Writes a attribute to an element.
 fn write_attr(elem: &mut BytesStart, key: &str, value: &[u8]) {
     elem.push_attribute(Attribute {
         key: QName(key.as_bytes()),
@@ -54,8 +91,7 @@ fn write_elem_start<W: Write>(writer: &mut Writer<W>, elem: BytesStart) -> PSRes
             return Err(PSError::ParseError {
                 msg: format!(
                     "Error writing element {} start to writer: {:?}",
-                    String::from_utf8(name)
-                        .unwrap_or("(failed to decode name from utf-8)".to_string()),
+                    String::from_utf8_lossy(&name),
                     err
                 ),
             })
@@ -72,8 +108,7 @@ fn write_elem_end<W: Write>(writer: &mut Writer<W>, elem: BytesEnd) -> PSResult<
             return Err(PSError::ParseError {
                 msg: format!(
                     "Error writing element {} end to writer: {:?}",
-                    String::from_utf8(name)
-                        .unwrap_or("(failed to decode name from utf-8)".to_string()),
+                    String::from_utf8_lossy(&name),
                     err
                 ),
             })
@@ -90,19 +125,6 @@ fn write_text<W: Write>(writer: &mut Writer<W>, text: BytesText) -> PSResult<()>
                 msg: format!("Error writing text to writer: {:?}", err),
             })
         }
-    }
-}
-
-/// Reads an event from a reader and returns a PSResult.
-fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'static>> {
-    let mut buf = Vec::new();
-    match reader.read_event_into(&mut buf) {
-        Err(err) => {
-            return Err(PSError::ParseError {
-                msg: format!("Failed to read event: {}", err),
-            })
-        }
-        Ok(event) => return Ok(event.into_owned()),
     }
 }
 
@@ -156,11 +178,7 @@ fn read_xref_content<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Stri
             },
             Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
                 b"xref" => break,
-                other => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Unexpected element closed in xref: {:?}", other),
-                    })
-                }
+                other => return unexpected_elem!(String::from_utf8_lossy(other), "closed", "xref"),
             },
             _ => {}
         }
@@ -286,7 +304,6 @@ impl PSMLObject for XRef {
 /// Reads values under a property with string or date datatypes.
 fn read_string_property_values<'a, R: BufRead>(
     reader: &'a mut Reader<R>,
-    datatype: &PropertyDatatype,
 ) -> PSResult<Vec<PropertyValue>> {
     let mut values: Vec<PropertyValue> = Vec::new();
     let mut current_val = String::new();
@@ -294,14 +311,12 @@ fn read_string_property_values<'a, R: BufRead>(
         match read_event(reader)? {
             Event::Start(elem) => match elem.name().as_ref() {
                 b"value" => {}
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Element {:?} not allowed in property with datatype: {}",
-                            elem.name(),
-                            datatype.to_str()
-                        ),
-                    })
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "property with datatype string or date"
+                    )
                 }
             },
             Event::End(elem) => match elem.name().as_ref() {
@@ -309,16 +324,13 @@ fn read_string_property_values<'a, R: BufRead>(
                     values.push(PropertyValue::String(current_val));
                     current_val = String::new();
                 }
-                b"property" => {
-                    break;
-                }
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Element {:?} not allowed in property with datatype: string/date",
-                            elem.name(),
-                        ),
-                    })
+                b"property" => break,
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "property with datatype string or date"
+                    )
                 }
             },
             Event::Text(text) => current_val.push_str(&String::from_utf8_lossy(&text)),
@@ -339,12 +351,11 @@ fn read_xref_property_values<'a, R: BufRead>(
             Event::End(elem) => match elem.name().as_ref() {
                 b"property" => break,
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element closed in property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "xref property"
+                    )
                 }
             },
             _ => {}
@@ -364,12 +375,11 @@ fn read_link_property_values<'a, R: BufRead>(
             Event::Start(elem) => match elem.name().as_ref() {
                 b"link" => event_buf.push(Event::Start(elem)),
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element opened in link property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "link property"
+                    )
                 }
             },
             Event::End(elem) => match elem.name().as_ref() {
@@ -380,12 +390,11 @@ fn read_link_property_values<'a, R: BufRead>(
                 }
                 b"property" => break,
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element closed in link property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "link property"
+                    )
                 }
             },
             other => event_buf.push(other),
@@ -405,12 +414,11 @@ fn read_markdown_property_values<'a, R: BufRead>(
             Event::Start(elem) => match elem.name().as_ref() {
                 b"markdown" => event_buf.push(Event::Start(elem)),
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element in markdown property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "markdown property"
+                    )
                 }
             },
             Event::End(elem) => match elem.name().as_ref() {
@@ -420,12 +428,11 @@ fn read_markdown_property_values<'a, R: BufRead>(
                 }
                 b"property" => break,
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element in markdown property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "markdown property"
+                    )
                 }
             },
             Event::Eof => {
@@ -452,12 +459,11 @@ fn read_markup_property_values<'a, R: BufRead>(
                     event_buf.push(Event::Start(elem))
                 }
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element in markup property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "markup property"
+                    )
                 }
             },
             Event::End(elem) => match elem.name().as_ref() {
@@ -470,12 +476,11 @@ fn read_markup_property_values<'a, R: BufRead>(
                     break;
                 }
                 other => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element in markup property: {}",
-                            String::from_utf8_lossy(other)
-                        ),
-                    })
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "markup property"
+                    )
                 }
             },
             Event::Eof => {
@@ -495,7 +500,7 @@ fn read_property_values<'a, R: BufRead>(
 ) -> PSResult<Vec<PropertyValue>> {
     match datatype {
         PropertyDatatype::String | PropertyDatatype::Date => {
-            return read_string_property_values(reader, datatype)
+            return read_string_property_values(reader)
         }
         PropertyDatatype::XRef => return read_xref_property_values(reader),
         PropertyDatatype::Link => return read_link_property_values(reader),
@@ -626,9 +631,13 @@ impl PSMLObject for Property {
                 match read_event(reader)? {
                     Event::End(elem_end) => match elem_end.name().as_ref() {
                         b"property" => break,
-                        other => return Err(PSError::ParseError { 
-                            msg: format!("Unexpected element closed in property with value from attribute: {:?}", other)
-                        })
+                        other => {
+                            return unexpected_elem!(
+                                String::from_utf8_lossy(other),
+                                "closed",
+                                "property"
+                            )
+                        }
                     },
                     _ => {}
                 }
@@ -709,18 +718,15 @@ fn read_properties<'a, R: BufRead>(
                     ),
                 })
             }
-            Ok(Event::Start(prop_start)) => {
-                props.push(Property::from_psml(reader, prop_start)?)
-            }
+            Ok(Event::Start(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
             Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
                 b"properties-fragment" => break,
-                _ => {
-                    return Err(PSError::ParseError {
-                        msg: format!(
-                            "Unexpected element closed in properties-fragment: {:#?}",
-                            elem_end.name()
-                        ),
-                    });
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "closed",
+                        "properties fragment"
+                    )
                 }
             },
             Ok(Event::Eof) => break,
