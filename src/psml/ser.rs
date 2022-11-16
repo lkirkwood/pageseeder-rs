@@ -663,16 +663,18 @@ impl PSMLObject for Property {
         let mut elem_start = BytesStart::new("property");
         write_attr(&mut elem_start, "name", self.name.as_bytes());
         write_attr_if_some(&mut elem_start, "title", self.title.as_ref());
-        write_attr(
-            &mut elem_start,
-            "multiple",
-            self.multiple.to_string().as_bytes(),
-        );
-        write_attr(
-            &mut elem_start,
-            "datatype",
-            self.datatype.to_str().as_bytes(),
-        );
+
+        if self.multiple == true {
+            write_attr(&mut elem_start, "multiple", "true".as_bytes());
+        }
+
+        if self.datatype != PropertyDatatype::String {
+            write_attr(
+                &mut elem_start,
+                "datatype",
+                self.datatype.to_str().as_bytes(),
+            );
+        }
 
         let num_values = self.values.len();
         if num_values == 0 {
@@ -690,7 +692,10 @@ impl PSMLObject for Property {
         }
 
         write_elem_start(writer, elem_start)?;
-        if num_values > 1 {
+        if (num_values > 1)
+            | ((self.datatype != PropertyDatatype::String)
+                & (self.datatype != PropertyDatatype::Date))
+        {
             write_property_values(writer, &self.values)?;
         }
         write_elem_end(writer, BytesEnd::new("property"))?;
@@ -949,7 +954,7 @@ mod tests {
     // Property
 
     const PROPERTY: &'static str =
-        "<property name=\"propname\" title=\"prop title\" multiple=\"true\" datatype=\"string\">\
+        "<property name=\"propname\" title=\"prop title\" multiple=\"true\">\
     <value>value1</value>\
     <value>value2</value>\
     <value>value3</value>\
@@ -984,9 +989,10 @@ mod tests {
 
     // PropertiesFragment
 
-    const PROPERTIES_FRAGMENT: &'static str = "<properties-fragment id=\"pfrag_id\" title=\"PFrag Title\">\
-    <property name=\"prop1\" title=\"Prop1 Title\" multiple=\"false\" datatype=\"string\" value=\"value1\"></property>\
-    <property name=\"prop2\" title=\"Multival Prop(2) title\" multiple=\"true\" datatype=\"string\">\
+    const PROPERTIES_FRAGMENT: &'static str =
+        "<properties-fragment id=\"pfrag_id\" title=\"PFrag Title\">\
+    <property name=\"prop1\" title=\"Prop1 Title\" value=\"value1\"></property>\
+    <property name=\"prop2\" title=\"Multival Prop(2) title\" multiple=\"true\">\
     <value>value2-1</value><value>value2-2</value>\
     <value>value2-3</value></property></properties-fragment>";
 
