@@ -245,6 +245,31 @@ pub struct PropertiesFragment {
     pub properties: Vec<Property>,
 }
 
+impl PropertiesFragment {
+    /// Creates a new empty fragment with the given id.
+    pub fn new(id: String) -> PropertiesFragment {
+        return PropertiesFragment {
+            id,
+            frag_type: None,
+            labels: Vec::new(),
+            properties: Vec::new(),
+        };
+    }
+
+    /// Adds the properties to the fragment and returns it.
+    pub fn with_properties(self, properties: Vec<Property>) -> PropertiesFragment {
+        return PropertiesFragment {
+            id: self.id,
+            frag_type: self.frag_type,
+            labels: self.labels,
+            properties: vec![self.properties, properties]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<Property>>(),
+        };
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct XRefFragment {
     /// ID of the fragment.
@@ -254,6 +279,18 @@ pub struct XRefFragment {
     /// Labels on this fragment.
     pub labels: Vec<String>,
     pub xrefs: Vec<XRef>,
+}
+
+impl XRefFragment {
+    /// Creates a new empty fragment with the given id.
+    pub fn new(id: String) -> XRefFragment {
+        return XRefFragment {
+            id,
+            frag_type: None,
+            labels: Vec::new(),
+            xrefs: Vec::new(),
+        };
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -266,6 +303,18 @@ pub struct Fragment {
     pub labels: Vec<String>,
     /// Contents of the fragment.
     pub content: Vec<Event<'static>>,
+}
+
+impl Fragment {
+    /// Creates a new empty fragment with the given id.
+    pub fn new(id: String) -> Fragment {
+        return Fragment {
+            id,
+            frag_type: None,
+            labels: Vec::new(),
+            content: Vec::new(),
+        };
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
