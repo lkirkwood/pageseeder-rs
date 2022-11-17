@@ -25,6 +25,11 @@ use super::model::{
 /// Returns a PSError::ParseError complaining of an unexpected element called "name".
 /// Optionally you can provide whether the element was closed or opened with "op",
 /// and additional detail as to where the error occured with "context".
+///
+/// Examples ($name, $op, $context):
+/// "Unexpected element: {$name}"
+/// "Unexpected element {$op}: {$name}"
+/// "Unexpected element {$op} in {$context}: {$name}"
 macro_rules! unexpected_elem {
     ($name:expr) => {
         Err(PSError::ParseError {
@@ -51,6 +56,24 @@ macro_rules! markup_elem_names {
             | b"list"
             | b"nlist"
             | b"preformat"
+            | b"br"
+            | b"bold"
+            | b"italic"
+            | b"inline"
+            | b"monospace"
+            | b"underline"
+    };
+}
+
+/// The names of the elements that may be in a fragment.
+macro_rules! fragment_elem_names {
+    () => {
+        b"block"
+            | b"blockxref"
+            | b"table"
+            | b"preformat"
+            | b"heading"
+            | b"para"
             | b"br"
             | b"bold"
             | b"italic"
@@ -874,24 +897,35 @@ impl PSMLObject for Fragment {
         Self::match_elem_name(&elem)?;
         let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
         let mut events = Vec::new();
-        let mut buf = Vec::new();
         loop {
-            match reader.read_event_into(&mut buf) {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Failed reading events in fragment {}: {:?}", id, err),
-                    })
-                }
-                Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
-                    b"fragment" => break,
-                    _ => events.push(Event::End(elem_end.into_owned())),
+            match read_event(reader)? {
+                Event::Start(elem_start) => match elem_start.name().as_ref() {
+                    fragment_elem_names!() => events.push(Event::Start(elem_start.into_owned())),
+                    other => {
+                        return unexpected_elem!(
+                            String::from_utf8_lossy(other),
+                            "opened",
+                            "fragment"
+                        )
+                    }
                 },
-                Ok(Event::Eof) => {
+                Event::End(elem_end) => match elem_end.name().as_ref() {
+                    b"fragment" => break,
+                    fragment_elem_names!() => events.push(Event::End(elem_end.into_owned())),
+                    other => {
+                        return unexpected_elem!(
+                            String::from_utf8_lossy(other),
+                            "closed",
+                            "fragment"
+                        )
+                    }
+                },
+                Event::Eof => {
                     return Err(PSError::ParseError {
                         msg: format!("Unexpected EOF in fragment {}", id),
                     })
                 }
-                Ok(event) => events.push(event.into_owned()),
+                event => events.push(event.into_owned()),
             }
         }
 
