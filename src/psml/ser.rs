@@ -14,10 +14,11 @@ use quick_xml::{
 };
 
 use super::model::{
-    Fragment, PropertiesFragment, PropertyDatatype, PropertyValue, XRef, XRefDisplayKind, XRefKind,
+    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, XRef,
+    XRefDisplayKind, XRefKind,
 };
 
-// Convenience macros
+//// Macros
 
 /// Returns a PSError::ParseError complaining of an unexpected element called "name".
 /// Optionally you can provide whether the element was closed or opened with "op",
@@ -40,7 +41,7 @@ macro_rules! unexpected_elem {
     };
 }
 
-// Convenience functions
+// Conveniece functions
 
 /// Reads an event from a reader and returns a PSResult.
 fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'static>> {
@@ -65,6 +66,19 @@ fn decode_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResu
         }
         Ok(val) => Ok(val.into_owned()),
     }
+}
+
+/// Decodes and attribute value when it is a comma-separated list of strings,
+/// and returns a PSResult.
+fn decode_list_attr<'a, R: BufRead>(
+    reader: &'a Reader<R>,
+    attr: Attribute,
+) -> PSResult<Vec<String>> {
+    let string = decode_attr(reader, attr)?;
+    return Ok(string
+        .split([','])
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>());
 }
 
 /// Writes a attribute to an element.
@@ -128,7 +142,7 @@ fn write_text<W: Write>(writer: &mut Writer<W>, text: BytesText) -> PSResult<()>
     }
 }
 
-// PSMLObject
+//// PSMLObject
 
 pub trait PSMLObject: Sized {
     /// Returns the name of the element this psmlobject is defined by in psml.
@@ -154,6 +168,8 @@ pub trait PSMLObject: Sized {
     /// Writes this object to a writer as psml.
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()>;
 }
+
+//// Fragment content
 
 // XRef
 
@@ -713,6 +729,8 @@ impl PSMLObject for Property {
     }
 }
 
+//// Fragments
+
 // PropertiesFragment
 
 /// Reads properties inside a properties-fragment from a reader.
@@ -751,6 +769,41 @@ fn read_properties<'a, R: BufRead>(
     return Ok(props);
 }
 
+//// Fragments
+
+/// Returns the id, frag_type and labels from a fragment element.
+fn read_fragment_attrs<'a, R: BufRead>(
+    reader: &'a mut Reader<R>,
+    elem: &BytesStart,
+) -> PSResult<(String, Option<String>, Vec<String>)> {
+    let mut id = None;
+    let mut frag_type = None;
+    let mut labels = Vec::new();
+    for attr in elem.attributes() {
+        match attr {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!("Failed to get properties fragment attribute: {:?}", err),
+                })
+            }
+            Ok(attr) => match attr.key.as_ref() {
+                b"id" => id = Some(decode_attr(reader, attr)?),
+                b"type" => frag_type = Some(decode_attr(reader, attr)?),
+                b"labels" => labels.extend(decode_list_attr(reader, attr)?),
+                _ => {}
+            },
+        }
+    }
+
+    if id.is_none() {
+        return Err(PSError::ParseError {
+            msg: "Properties fragment missing required 'id' attribute.".to_string(),
+        });
+    } else {
+        return Ok((id.unwrap(), frag_type, labels));
+    }
+}
+
 impl PSMLObject for PropertiesFragment {
     fn elem_name() -> &'static str {
         return "properties-fragment";
@@ -761,52 +814,25 @@ impl PSMLObject for PropertiesFragment {
         elem: BytesStart,
     ) -> PSResult<PropertiesFragment> {
         Self::match_elem_name(&elem)?;
-        let mut frag_id = None;
-        let mut frag_title = None;
-        for attr in elem.attributes() {
-            match attr {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Failed to get properties fragment attribute: {:?}", err),
-                    })
-                }
-                Ok(attr) => match attr.key.as_ref() {
-                    b"id" => frag_id = Some(decode_attr(reader, attr)?),
-                    b"title" => frag_title = Some(decode_attr(reader, attr)?),
-                    _ => {}
-                },
-            }
-        }
-
-        if frag_id.is_none() {
-            return Err(PSError::ParseError {
-                msg: "Properties fragment missing required 'id' attribute.".to_string(),
-            });
-        }
-
-        let props = read_properties(reader, frag_id.as_ref().unwrap())?;
+        let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
+        let properties = read_properties(reader, id.as_ref())?;
 
         return Ok(PropertiesFragment {
-            id: frag_id.unwrap(),
-            title: frag_title,
-            properties: props,
+            id,
+            frag_type,
+            labels,
+            properties,
         });
     }
 
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut elem_start = BytesStart::new("properties-fragment");
 
-        elem_start.push_attribute(Attribute {
-            key: QName(b"id"),
-            value: Cow::Borrowed(self.id.as_bytes()),
-        });
-        if self.title.is_some() {
-            elem_start.push_attribute(Attribute {
-                key: QName(b"title"),
-                value: Cow::Borrowed(self.title.as_ref().unwrap().as_bytes()),
-            });
+        write_attr(&mut elem_start, "id", &self.id.as_bytes());
+        write_attr_if_some(&mut elem_start, "type", self.frag_type.as_ref());
+        if self.labels.len() > 0 {
+            write_attr(&mut elem_start, "labels", &self.labels.join(",").as_bytes())
         }
-
         write_elem_start(writer, elem_start)?;
 
         for property in &self.properties {
@@ -856,52 +882,24 @@ impl PSMLObject for Fragment {
 
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Fragment> {
         Self::match_elem_name(&elem)?;
-        let mut frag_id = None;
-        let mut frag_title = None;
-        for attr in elem.attributes() {
-            match attr {
-                Err(err) => {
-                    return Err(PSError::ParseError {
-                        msg: format!("Failed to get fragment attribute: {:?}", err),
-                    })
-                }
-                Ok(attr) => match attr.key.as_ref() {
-                    b"id" => frag_id = Some(decode_attr(reader, attr)?),
-                    b"title" => frag_title = Some(decode_attr(reader, attr)?),
-                    _ => {}
-                },
-            }
-        }
-
-        if frag_id.is_none() {
-            return Err(PSError::ParseError {
-                msg: "Fragment missing required 'id' attribute.".to_string(),
-            });
-        };
-
-        let events = read_fragment_content(reader, frag_id.as_ref().unwrap())?;
+        let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
+        let events = read_fragment_content(reader, id.as_ref())?;
 
         return Ok(Fragment {
-            id: frag_id.unwrap(),
-            title: frag_title,
+            id,
+            frag_type,
+            labels,
             content: events,
         });
     }
 
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut elem_start = BytesStart::new("fragment");
-        elem_start.push_attribute(Attribute {
-            key: QName(b"id"),
-            value: Cow::Borrowed(self.id.as_bytes()),
-        });
-
-        if self.title.is_some() {
-            elem_start.push_attribute(Attribute {
-                key: QName(b"title"),
-                value: Cow::Borrowed(self.title.as_ref().unwrap().as_bytes()),
-            })
+        write_attr(&mut elem_start, "id", &self.id.as_bytes());
+        write_attr_if_some(&mut elem_start, "type", self.frag_type.as_ref());
+        if self.labels.len() > 0 {
+            write_attr(&mut elem_start, "labels", &self.labels.join(",").as_bytes())
         }
-
         write_elem_start(writer, elem_start)?;
 
         for event in &self.content {

@@ -153,24 +153,40 @@ pub struct Property {
     pub values: Vec<PropertyValue>,
 }
 
+// Fragments
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct PropertiesFragment {
+    /// ID of the fragment.
     pub id: String,
-    pub title: Option<String>,
+    /// Template type for the fragment.
+    pub frag_type: Option<String>,
+    /// Labels on this fragment.
+    pub labels: Vec<String>,
+    /// Properties in this fragment.
     pub properties: Vec<Property>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct XRefFragment {
+    /// ID of the fragment.
     pub id: String,
-    pub title: Option<String>,
+    /// Template type for the fragment.
+    pub frag_type: Option<String>,
+    /// Labels on this fragment.
+    pub labels: Vec<String>,
     pub xrefs: Vec<XRef>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Fragment {
+    /// ID of the fragment.
     pub id: String,
-    pub title: Option<String>,
+    /// Template type for the fragment.
+    pub frag_type: Option<String>,
+    /// Labels on this fragment.
+    pub labels: Vec<String>,
+    /// Contents of the fragment.
     pub content: Vec<Event<'static>>,
 }
 
