@@ -62,6 +62,7 @@ macro_rules! markup_elem_names {
             | b"inline"
             | b"monospace"
             | b"underline"
+            | b"image"
     };
 }
 
@@ -80,6 +81,7 @@ macro_rules! fragment_elem_names {
             | b"inline"
             | b"monospace"
             | b"underline"
+            | b"image"
     };
 }
 
@@ -844,6 +846,8 @@ fn read_fragment_attrs<'a, R: BufRead>(
         return Ok((id.unwrap(), frag_type, labels));
     }
 }
+
+// PropertiesFragment
 
 impl PSMLObject for PropertiesFragment {
     fn elem_name() -> &'static str {
