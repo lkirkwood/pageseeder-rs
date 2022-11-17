@@ -82,7 +82,7 @@ pub struct XRef {
     /// How target link text should be displayed.
     pub display: XRefDisplayKind,
     /// ID of fragment to link to.
-    pub frag_id: Option<String>,
+    pub frag_id: String,
     /// Comma separated xref labels.
     pub labels: Vec<String>,
     /// Level for heading numbering of target document (1-5).
@@ -107,7 +107,7 @@ impl XRef {
             content: String::new(),
             config: None,
             display: XRefDisplayKind::Document,
-            frag_id: None,
+            frag_id: "default".to_string(),
             labels: Vec::new(),
             level: None,
             reverselink: true,
@@ -126,7 +126,7 @@ impl XRef {
             content: String::new(),
             config: None,
             display: XRefDisplayKind::Document,
-            frag_id: None,
+            frag_id: "default".to_string(),
             labels: Vec::new(),
             level: None,
             reverselink: true,
@@ -145,7 +145,7 @@ impl XRef {
             content: String::new(),
             config: None,
             display: XRefDisplayKind::Document,
-            frag_id: None,
+            frag_id: "default".to_string(),
             labels: Vec::new(),
             level: None,
             reverselink: true,

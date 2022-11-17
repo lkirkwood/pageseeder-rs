@@ -274,7 +274,7 @@ impl PSMLObject for XRef {
             content,
             config,
             display,
-            frag_id,
+            frag_id: frag_id.unwrap_or("default".to_string()),
             labels,
             level,
             reverselink,
@@ -295,7 +295,7 @@ impl PSMLObject for XRef {
             write_attr(&mut elem_start, "display", self.display.to_str().as_bytes());
         }
 
-        write_attr_if_some(&mut elem_start, "frag", self.frag_id.as_ref());
+        write_attr(&mut elem_start, "frag", self.frag_id.as_bytes());
 
         if self.labels.len() > 0 {
             write_attr(&mut elem_start, "labels", self.labels.join(",").as_bytes())
