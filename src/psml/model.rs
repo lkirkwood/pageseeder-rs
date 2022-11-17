@@ -291,6 +291,19 @@ impl XRefFragment {
             xrefs: Vec::new(),
         };
     }
+
+    /// Adds the xrefs to the fragment and returns it.
+    pub fn with_xrefs(self, xrefs: Vec<XRef>) -> XRefFragment {
+        return XRefFragment {
+            id: self.id,
+            frag_type: self.frag_type,
+            labels: self.labels,
+            xrefs: vec![self.xrefs, xrefs]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<XRef>>(),
+        };
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -313,6 +326,19 @@ impl Fragment {
             frag_type: None,
             labels: Vec::new(),
             content: Vec::new(),
+        };
+    }
+
+    /// Adds the content to the fragment and returns it.
+    pub fn with_content(self, content: Vec<Event<'static>>) -> Fragment {
+        return Fragment {
+            id: self.id,
+            frag_type: self.frag_type,
+            labels: self.labels,
+            content: vec![self.content, content]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<Event<'static>>>(),
         };
     }
 }
