@@ -97,6 +97,84 @@ pub struct XRef {
     pub xref_type: Option<XRefKind>,
 }
 
+impl XRef {
+    /// Returns a default xref to the given uriid.
+    pub fn uriid(uriid: String) -> XRef {
+        return XRef {
+            uriid: None,
+            docid: None,
+            href: Some(uriid),
+            content: String::new(),
+            config: None,
+            display: XRefDisplayKind::Document,
+            frag_id: None,
+            labels: Vec::new(),
+            level: None,
+            reverselink: true,
+            reversetitle: None,
+            title: None,
+            xref_type: None,
+        };
+    }
+
+    /// Returns a default xref to the given docid.
+    pub fn docid(docid: String) -> XRef {
+        return XRef {
+            uriid: None,
+            docid: Some(docid),
+            href: None,
+            content: String::new(),
+            config: None,
+            display: XRefDisplayKind::Document,
+            frag_id: None,
+            labels: Vec::new(),
+            level: None,
+            reverselink: true,
+            reversetitle: None,
+            title: None,
+            xref_type: None,
+        };
+    }
+
+    /// Returns a default xref to the given href.
+    pub fn href(href: String) -> XRef {
+        return XRef {
+            uriid: None,
+            docid: None,
+            href: Some(href),
+            content: String::new(),
+            config: None,
+            display: XRefDisplayKind::Document,
+            frag_id: None,
+            labels: Vec::new(),
+            level: None,
+            reverselink: true,
+            reversetitle: None,
+            title: None,
+            xref_type: None,
+        };
+    }
+
+    /// Adds the specified content to the xref and returns it.
+    pub fn with_content(self, content: String) -> XRef {
+        return XRef {
+            uriid: self.uriid,
+            docid: self.docid,
+            href: self.href,
+            content,
+            config: self.config,
+            display: self.display,
+            frag_id: self.frag_id,
+            labels: self.labels,
+            level: self.level,
+            reverselink: self.reverselink,
+            reversetitle: self.reversetitle,
+            title: self.title,
+            xref_type: self.xref_type,
+        };
+    }
+}
+
 // Property
 
 /// Property datatype attribute values.
