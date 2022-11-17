@@ -1,0 +1,3 @@
+<fragment id="1"><heading level="1">Alice in Wonderland</heading></fragment>
+<fragment id="1" type="thumbnail"><image href="/path/to/an/image.ext" /></fragment>
+<fragment id="1" labels="internal"><para><italic>Office</italic> use <bold>only</bold></para></fragment>

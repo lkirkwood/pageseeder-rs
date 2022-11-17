@@ -9,10 +9,7 @@ use pretty_assertions::assert_eq;
 
 use crate::{
     error::PSResult,
-    psml::model::{
-        Fragment, PropertiesFragment, Property, PropertyDatatype, PropertyValue, XRef,
-        XRefDisplayKind,
-    },
+    psml::model::{Fragment, PropertiesFragment, Property, PropertyDatatype, PropertyValue, XRef},
 };
 
 use super::{read_event, write_text, PSMLObject};
@@ -20,7 +17,6 @@ use super::{read_event, write_text, PSMLObject};
 /// Reads psmlobjs from a string.
 fn read_psmlobjs<T: PSMLObject>(string: &str) -> PSResult<Vec<T>> {
     let mut reader = Reader::from_str(string);
-    reader.expand_empty_elements(true);
 
     let mut objs = Vec::new();
     let elem_name = T::elem_name().as_bytes();
@@ -72,7 +68,7 @@ const MARKUP_PROPERTY_CONTENT: &str =
     "<para>The <bold>quick</bold> brown <italic>fox</italic></para>\
 <para>jumps over the <monospace>lazy</monospace> dog</para>";
 
-/// Returns a property with the same attributes as PROPERTY.
+/// Returns a property with the same attributes the test data.
 fn properties() -> Vec<Property> {
     return vec![
         Property {
@@ -141,6 +137,9 @@ fn property_to_psml() {
 
 //// PropertiesFragment
 
+// Fixtures
+
+/// Returns a properties fragment with the same attributes the test data.
 fn properties_fragments() -> Vec<PropertiesFragment> {
     return vec![
         PropertiesFragment::new(3.to_string()).with_properties(vec![
@@ -221,6 +220,8 @@ fn properties_fragments() -> Vec<PropertiesFragment> {
     ];
 }
 
+// Tests
+
 #[test]
 fn properties_fragment_from_psml() {
     let str_pfrags: Vec<PropertiesFragment> =
@@ -237,48 +238,45 @@ fn properties_fragment_to_psml() {
     );
 }
 
-// Fragment
+//// Fragment
 
-//     const FRAGMENT: &'static str = "<fragment id=\"frag_id\" title=\"Frag Title!\">\
-// <p>This is normal text, this is <bold>bold</bold> text, this is <italic>italic</italic> text,\
-// and this is <monospace>m o n o s p a c e</monospace> text!</p></fragment>";
+// Fixtures
 
-//     fn fragment_content() -> Vec<Event<'static>> {
-//         // TODO write better test fixture
-//         let mut reader = Reader::from_str(FRAGMENT);
-//         loop {
-//             match reader.read_event() {
-//                 Err(err) => panic!("Read error: {:?}", err),
-//                 Ok(Event::Start(frag_start)) => match frag_start.name().as_ref() {
-//                     b"fragment" => {
-//                         return read_fragment_content(&mut reader, "testing fragment").unwrap()
-//                     }
-//                     _ => panic!(
-//                         "Unexpected element in test fragment string: {:?}",
-//                         frag_start.name()
-//                     ),
-//                 },
-//                 Ok(event) => panic!("Unexpected event in test fragment string: {:?}", event),
-//             }
-//         }
-//     }
+/// Returns a fragment with the same attributes as the test data.
+fn fragments() -> Vec<Fragment> {
+    return vec![
+        Fragment::new(1.to_string()).with_content(
+            read_events("<heading level=\"1\">Alice in Wonderland</heading>").unwrap(),
+        ),
+        Fragment {
+            id: 1.to_string(),
+            frag_type: Some("thumbnail".to_string()),
+            labels: Vec::new(),
+            content: read_events("<image href=\"/path/to/an/image.ext\" />").unwrap(),
+        },
+        Fragment {
+            id: 1.to_string(),
+            frag_type: None,
+            labels: vec!["internal".to_string()],
+            content: read_events("<para><italic>Office</italic> use <bold>only</bold></para>")
+                .unwrap(),
+        },
+    ];
+}
 
-//     fn fragment() -> Fragment {
-//         return Fragment {
-//             id: "frag_id".to_string(),
-//             title: Some("Frag Title!".to_string()),
-//             content: fragment_content(),
-//         };
-//     }
+// Tests
 
-//     #[test]
-//     fn fragment_from_psml() {
-//         let str_fragment = read_psmlobj(FRAGMENT).unwrap();
-//         assert_eq!(fragment(), str_fragment);
-//     }
+#[test]
+fn fragment_from_psml() {
+    let str_fragments = read_psmlobjs(&fs::read_to_string("test/fragment.psml").unwrap()).unwrap();
+    assert_eq!(fragments(), str_fragments);
+}
 
-//     #[test]
-//     fn fragment_to_psml() {
-//         let fragment_str = write_psmlobj(fragment()).unwrap();
-//         assert_eq!(FRAGMENT, fragment_str);
-//     }
+#[test]
+fn fragment_to_psml() {
+    let fragment_str = write_psmlobjs(fragments()).unwrap();
+    assert_eq!(
+        fs::read_to_string("test/fragment.psml").unwrap(),
+        fragment_str
+    );
+}
