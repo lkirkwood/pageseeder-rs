@@ -649,6 +649,7 @@ impl PSMLObject for Property {
         }
 
         if (multiple == true)
+            | (values.len() == 0)
             | ((datatype != PropertyDatatype::String) & (datatype != PropertyDatatype::Date))
         {
             values.extend(read_property_values(reader, &datatype)?);
