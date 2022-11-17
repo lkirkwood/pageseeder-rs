@@ -14,8 +14,7 @@ use quick_xml::{
 };
 
 use super::model::{
-    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, XRef,
-    XRefDisplayKind, XRefKind,
+    Fragment, PropertiesFragment, PropertyDatatype, PropertyValue, XRef, XRefDisplayKind, XRefKind,
 };
 
 //// Macros
@@ -847,34 +846,6 @@ impl PSMLObject for PropertiesFragment {
 
 // Fragment
 
-fn read_fragment_content<'a, R: BufRead>(
-    reader: &'a mut Reader<R>,
-    frag_id: &str,
-) -> PSResult<Vec<Event<'static>>> {
-    let mut events = Vec::new();
-    let mut buf = Vec::new();
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Err(err) => {
-                return Err(PSError::ParseError {
-                    msg: format!("Failed reading events in fragment {}: {:?}", frag_id, err),
-                })
-            }
-            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
-                b"fragment" => break,
-                _ => events.push(Event::End(elem_end.into_owned())),
-            },
-            Ok(Event::Eof) => {
-                return Err(PSError::ParseError {
-                    msg: format!("Unexpected EOF in fragment {}", frag_id),
-                })
-            }
-            Ok(event) => events.push(event.into_owned()),
-        }
-    }
-    return Ok(events);
-}
-
 impl PSMLObject for Fragment {
     fn elem_name() -> &'static str {
         return "fragment";
@@ -883,7 +854,27 @@ impl PSMLObject for Fragment {
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Fragment> {
         Self::match_elem_name(&elem)?;
         let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
-        let events = read_fragment_content(reader, id.as_ref())?;
+        let mut events = Vec::new();
+        let mut buf = Vec::new();
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed reading events in fragment {}: {:?}", id, err),
+                    })
+                }
+                Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+                    b"fragment" => break,
+                    _ => events.push(Event::End(elem_end.into_owned())),
+                },
+                Ok(Event::Eof) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Unexpected EOF in fragment {}", id),
+                    })
+                }
+                Ok(event) => events.push(event.into_owned()),
+            }
+        }
 
         return Ok(Fragment {
             id,
@@ -938,7 +929,7 @@ mod tests {
         },
     };
 
-    use super::{read_event, read_fragment_content, write_text, PSMLObject};
+    use super::{read_event, write_text, PSMLObject};
 
     /// Reads psmlobjs from a string.
     fn read_psmlobj<T: PSMLObject>(string: &str) -> PSResult<Vec<T>> {
