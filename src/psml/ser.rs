@@ -672,6 +672,10 @@ impl PSMLObject for Property {
             }
         }
 
+        if (multiple == false) & (values.len() > 1) {
+            multiple = true;
+        }
+
         if pname.is_none() {
             return Err(PSError::ParseError {
                 msg: "Property missing required 'name' attribute".to_string(),
