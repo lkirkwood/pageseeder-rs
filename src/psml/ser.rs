@@ -43,6 +43,23 @@ macro_rules! unexpected_elem {
     };
 }
 
+/// The names of the elements that may be in a markup property.
+macro_rules! markup_elem_names {
+    () => {
+        b"heading"
+            | b"para"
+            | b"list"
+            | b"nlist"
+            | b"preformat"
+            | b"br"
+            | b"bold"
+            | b"italic"
+            | b"inline"
+            | b"monospace"
+            | b"underline"
+    };
+}
+
 // Conveniece functions
 
 /// Reads an event from a reader and returns a PSResult.
@@ -481,10 +498,7 @@ fn read_markup_property_values<'a, R: BufRead>(
     loop {
         match read_event(reader)? {
             Event::Start(elem) => match elem.name().as_ref() {
-                b"heading" | b"para" | b"list" | b"nlist" | b"preformat" | b"br" | b"bold"
-                | b"italic" | b"inline" | b"monospace" | b"underline" => {
-                    event_buf.push(Event::Start(elem))
-                }
+                markup_elem_names!() => event_buf.push(Event::Start(elem)),
                 other => {
                     return unexpected_elem!(
                         String::from_utf8_lossy(other),
@@ -494,10 +508,7 @@ fn read_markup_property_values<'a, R: BufRead>(
                 }
             },
             Event::End(elem) => match elem.name().as_ref() {
-                b"heading" | b"para" | b"list" | b"nlist" | b"preformat" | b"br" | b"bold"
-                | b"italic" | b"inline" | b"monospace" | b"underline" => {
-                    event_buf.push(Event::End(elem))
-                }
+                markup_elem_names!() => event_buf.push(Event::End(elem)),
                 b"property" => {
                     values.push(PropertyValue::Markup(event_buf));
                     break;
