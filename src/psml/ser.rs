@@ -10,6 +10,7 @@ use crate::{
     error::{PSError, PSResult},
     psml::model::Property,
 };
+use indexmap::IndexMap;
 use quick_xml::{
     events::{attributes::Attribute, BytesEnd, BytesStart, BytesText, Event},
     name::QName,
@@ -17,7 +18,8 @@ use quick_xml::{
 };
 
 use super::model::{
-    Fragment, PropertiesFragment, PropertyDatatype, PropertyValue, XRef, XRefDisplayKind, XRefKind,
+    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, Section, XRef,
+    XRefDisplayKind, XRefKind,
 };
 
 //// Macros
@@ -123,6 +125,22 @@ fn decode_list_attr<'a, R: BufRead>(
         .split([','])
         .map(|s| s.to_string())
         .collect::<Vec<String>>());
+}
+
+fn decode_bool_attr<'a, R: BufRead>(reader: &'a Reader<R>, attr: Attribute) -> PSResult<bool> {
+    let attr_name = attr.key.to_owned();
+    match decode_attr(reader, attr)?.as_ref() {
+        "true" => return Ok(true),
+        "false" => return Ok(false),
+        other => {
+            return Err(PSError::ParseError {
+                msg: format!(
+                    "Unexpected value for boolean attribute {:?}: {}",
+                    attr_name, other
+                ),
+            })
+        }
+    }
 }
 
 /// Writes a attribute to an element.
@@ -774,6 +792,39 @@ impl PSMLObject for Property {
 
 //// Fragments
 
+/// Returns the id, frag_type and labels from a fragment element.
+fn read_fragment_attrs<'a, R: BufRead>(
+    reader: &'a mut Reader<R>,
+    elem: &BytesStart,
+) -> PSResult<(String, Option<String>, Vec<String>)> {
+    let mut id = None;
+    let mut frag_type = None;
+    let mut labels = Vec::new();
+    for attr in elem.attributes() {
+        match attr {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!("Failed to get properties fragment attribute: {:?}", err),
+                })
+            }
+            Ok(attr) => match attr.key.as_ref() {
+                b"id" => id = Some(decode_attr(reader, attr)?),
+                b"type" => frag_type = Some(decode_attr(reader, attr)?),
+                b"labels" => labels.extend(decode_list_attr(reader, attr)?),
+                _ => {}
+            },
+        }
+    }
+
+    if id.is_none() {
+        return Err(PSError::ParseError {
+            msg: "Properties fragment missing required 'id' attribute.".to_string(),
+        });
+    } else {
+        return Ok((id.unwrap(), frag_type, labels));
+    }
+}
+
 // PropertiesFragment
 
 /// Reads properties inside a properties-fragment from a reader.
@@ -811,43 +862,6 @@ fn read_properties<'a, R: BufRead>(
 
     return Ok(props);
 }
-
-//// Fragments
-
-/// Returns the id, frag_type and labels from a fragment element.
-fn read_fragment_attrs<'a, R: BufRead>(
-    reader: &'a mut Reader<R>,
-    elem: &BytesStart,
-) -> PSResult<(String, Option<String>, Vec<String>)> {
-    let mut id = None;
-    let mut frag_type = None;
-    let mut labels = Vec::new();
-    for attr in elem.attributes() {
-        match attr {
-            Err(err) => {
-                return Err(PSError::ParseError {
-                    msg: format!("Failed to get properties fragment attribute: {:?}", err),
-                })
-            }
-            Ok(attr) => match attr.key.as_ref() {
-                b"id" => id = Some(decode_attr(reader, attr)?),
-                b"type" => frag_type = Some(decode_attr(reader, attr)?),
-                b"labels" => labels.extend(decode_list_attr(reader, attr)?),
-                _ => {}
-            },
-        }
-    }
-
-    if id.is_none() {
-        return Err(PSError::ParseError {
-            msg: "Properties fragment missing required 'id' attribute.".to_string(),
-        });
-    } else {
-        return Ok((id.unwrap(), frag_type, labels));
-    }
-}
-
-// PropertiesFragment
 
 impl PSMLObject for PropertiesFragment {
     fn elem_name() -> &'static str {
@@ -962,6 +976,165 @@ impl PSMLObject for Fragment {
         }
 
         write_elem_end(writer, BytesEnd::new("fragment"))?;
+
+        return Ok(());
+    }
+}
+
+//// TODO XRefFragment
+
+//// Section
+
+/// Reads the content of a section and returns content title and fragments.
+fn read_section_content<'a, R: BufRead>(
+    reader: &'a mut Reader<R>,
+) -> PSResult<(Option<String>, IndexMap<String, Fragments>)> {
+    let mut title = None;
+    let mut fragments = IndexMap::new();
+    let mut in_title = false;
+    loop {
+        match read_event(reader)? {
+            Event::Start(elem_start) => match elem_start.name().as_ref() {
+                b"title" => in_title = true,
+                b"fragment" => {
+                    let frag = Fragment::from_psml(reader, elem_start)?;
+                    fragments.insert(frag.id.to_owned(), Fragments::Normal(frag));
+                }
+                b"properties-fragment" => {
+                    let frag = PropertiesFragment::from_psml(reader, elem_start)?;
+                    fragments.insert(frag.id.to_owned(), Fragments::Properties(frag));
+                }
+                b"media-fragment" => todo!("Implement media fragment."),
+                b"xref-fragment" => todo!("Implement xref fragment."),
+                other => {
+                    return unexpected_elem!(String::from_utf8_lossy(other), "opened", "section")
+                }
+            },
+            Event::End(elem_end) => match elem_end.name().as_ref() {
+                b"title" => in_title = false,
+                b"section" => break,
+                other => {
+                    return unexpected_elem!(String::from_utf8_lossy(other), "closed", "section")
+                }
+            },
+            Event::Text(bytes) => match in_title {
+                true => match String::from_utf8(bytes.to_vec()) {
+                    Err(err) => {
+                        return Err(PSError::ParseError {
+                            msg: format!(
+                                "Failed to decode content title from utf-8 in section: {:?}",
+                                err
+                            ),
+                        })
+                    }
+                    Ok(text) => title = Some(text),
+                },
+                false => {}
+            },
+            Event::Eof => {
+                return Err(PSError::ParseError {
+                    msg: "Unexpected EOF in Section.".to_string(),
+                })
+            }
+            _ => {}
+        }
+    }
+
+    return Ok((title, fragments));
+}
+
+/// Writes the section content title and fragments.
+fn write_section_content<W: Write>(writer: &mut Writer<W>, section: &Section) -> PSResult<()> {
+    if section.title.is_some() {
+        write_elem_start(writer, BytesStart::new("title"))?;
+        write_text(writer, BytesText::new(section.title.as_ref().unwrap()))?;
+        write_elem_end(writer, BytesEnd::new("title"))?;
+    }
+    for fragment in section.fragments.values() {
+        match fragment {
+            Fragments::Normal(frag) => frag.to_psml(writer)?,
+            Fragments::Properties(frag) => frag.to_psml(writer)?,
+            Fragments::XRef(_frag) => todo!("Implement PSMLObj for XRefFragment"),
+            Fragments::Media(()) => todo!("Add media frag"),
+        }
+    }
+    return Ok(());
+}
+
+impl PSMLObject for Section {
+    fn elem_name() -> &'static str {
+        return "section";
+    }
+
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut id = None;
+        let mut title = None;
+        let mut edit = true;
+        let mut lock = false;
+        let mut overwrite = true;
+        let mut fragment_types = Vec::new();
+        for attr_res in elem.attributes() {
+            match attr_res {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed reading attribute on section: {:?}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"id" => id = Some(decode_attr(reader, attr)?),
+                    b"title" => title = Some(decode_attr(reader, attr)?),
+                    b"edit" => edit = decode_bool_attr(reader, attr)?,
+                    b"lock" => lock = decode_bool_attr(reader, attr)?,
+                    b"overwrite" => overwrite = decode_bool_attr(reader, attr)?,
+                    b"fragmenttype" => fragment_types.extend(decode_list_attr(reader, attr)?),
+                    other => {
+                        return Err(PSError::ParseError {
+                            msg: format!("Unexpected attribute on section: {:?}", other),
+                        })
+                    }
+                },
+            }
+        }
+
+        let (content_title, fragments) = read_section_content(reader)?;
+
+        if id.is_none() {
+            return Err(PSError::ParseError {
+                msg: format!("Section missing required attribute id."),
+            });
+        } else {
+            return Ok(Section {
+                id: id.unwrap(),
+                title,
+                content_title,
+                edit,
+                lock,
+                overwrite,
+                fragment_types,
+                fragments: IndexMap::from(fragments),
+            });
+        }
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem_start = BytesStart::new("section");
+        write_attr(&mut elem_start, "id", &self.id.as_bytes());
+        write_attr_if_some(&mut elem_start, "title", self.title.as_ref());
+
+        if self.edit == false {
+            write_attr(&mut elem_start, "edit", "false".as_bytes());
+        }
+        if self.lock == true {
+            write_attr(&mut elem_start, "lock", "true".as_bytes());
+        }
+        if self.overwrite == false {
+            write_attr(&mut elem_start, "overwrite", "false".as_bytes());
+        }
+
+        write_elem_start(writer, elem_start)?;
+        write_section_content(writer, self)?;
+        write_elem_end(writer, BytesEnd::new("section"))?;
 
         return Ok(());
     }
