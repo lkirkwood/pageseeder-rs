@@ -348,6 +348,7 @@ pub enum Fragments {
     Normal(Fragment),
     Properties(PropertiesFragment),
     XRef(XRefFragment),
+    Media(()),
 }
 
 impl Fragments {
@@ -356,6 +357,7 @@ impl Fragments {
             Fragments::Normal(frag) => &frag.id,
             Fragments::Properties(frag) => &frag.id,
             Fragments::XRef(frag) => &frag.id,
+            Fragments::Media(_frag) => todo!("Implement media frag"),
         }
     }
 }
