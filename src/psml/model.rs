@@ -350,9 +350,68 @@ pub enum Fragments {
     XRef(XRefFragment),
 }
 
+impl Fragments {
+    pub fn id(&self) -> &str {
+        match self {
+            Fragments::Normal(frag) => &frag.id,
+            Fragments::Properties(frag) => &frag.id,
+            Fragments::XRef(frag) => &frag.id,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Section {
+    /// ID of the section.
+    pub id: String,
+    /// Title of the section in the UI.
+    pub title: Option<String>,
+    /// Title of the content.
+    pub content_title: Option<String>,
+    /// Whether fragments in this section can be edited in the UI.
+    pub edit: bool,
+    /// Whether the structure of this section can be modified.
+    pub lock: bool,
+    /// Whether the existing section/fragments are to be overwritten by these during upload.
+    pub overwrite: bool,
+    /// Fragment types this section is allowed to contain.
+    pub fragment_types: Vec<String>,
+    /// Fragments in this section.
     pub fragments: IndexMap<String, Fragments>,
+}
+
+impl Section {
+    /// Creates a new empty fragment with the given id.
+    pub fn new(id: String) -> Section {
+        return Section {
+            id,
+            title: None,
+            content_title: None,
+            edit: true,
+            lock: false,
+            overwrite: true,
+            fragment_types: Vec::new(),
+            fragments: IndexMap::new(),
+        };
+    }
+
+    /// Adds the given fragments to this section and returns it.
+    pub fn with_fragments(self, fragments: Vec<Fragments>) -> Section {
+        let mut all_frags = IndexMap::from(self.fragments);
+        for frag in fragments {
+            all_frags.insert(frag.id().to_string(), frag);
+        }
+        return Section {
+            id: self.id,
+            title: self.title,
+            content_title: self.content_title,
+            edit: self.edit,
+            lock: self.lock,
+            overwrite: self.overwrite,
+            fragment_types: self.fragment_types,
+            fragments: all_frags,
+        };
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
