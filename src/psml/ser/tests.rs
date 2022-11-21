@@ -9,7 +9,10 @@ use pretty_assertions::assert_eq;
 
 use crate::{
     error::PSResult,
-    psml::model::{Fragment, PropertiesFragment, Property, PropertyDatatype, PropertyValue, XRef},
+    psml::model::{
+        Fragment, Fragments, PropertiesFragment, Property, PropertyDatatype, PropertyValue,
+        Section, XRef,
+    },
 };
 
 use super::{read_event, write_text, PSMLObject};
@@ -278,5 +281,53 @@ fn fragment_to_psml() {
     assert_eq!(
         fs::read_to_string("test/fragment.psml").unwrap(),
         fragment_str
+    );
+}
+
+/// Section
+
+// Fixtures
+
+fn sections() -> Vec<Section> {
+    let mut section = Section::new("section_id".to_string()).with_fragments(vec![
+        Fragments::Normal(
+            Fragment::new(0.to_string())
+                .with_content(read_events("<para>Some paragraph text</para>").unwrap()),
+        ),
+        Fragments::Properties(
+            PropertiesFragment::new("props".to_string()).with_properties(vec![Property {
+                name: "pname1".to_string(),
+                title: Some("Prop1".to_string()),
+                multiple: false,
+                datatype: PropertyDatatype::String,
+                values: vec![PropertyValue::String("value1".to_string())],
+            }]),
+        ),
+    ]);
+    section.title = Some("Section Title!".to_string());
+    section.content_title = Some("Content Title".to_string());
+
+    return vec![
+        section,
+        Section::new("sec2".to_string()).with_fragments(vec![Fragments::Normal(
+            Fragment::new(1.to_string()).with_content(
+                read_events("<para>This is <bold>more</bold> paragraph text.</para>").unwrap(),
+            ),
+        )]),
+    ];
+}
+
+#[test]
+fn section_from_psml() {
+    let str_sections = read_psmlobjs(&fs::read_to_string("test/section.psml").unwrap()).unwrap();
+    assert_eq!(sections(), str_sections);
+}
+
+#[test]
+fn section_to_psml() {
+    let sections_str = write_psmlobjs(sections()).unwrap();
+    assert_eq!(
+        sections_str,
+        fs::read_to_string("test/section.psml").unwrap()
     );
 }

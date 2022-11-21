@@ -1045,9 +1045,12 @@ fn read_section_content<'a, R: BufRead>(
 
 /// Writes the section content title and fragments.
 fn write_section_content<W: Write>(writer: &mut Writer<W>, section: &Section) -> PSResult<()> {
-    if section.title.is_some() {
+    if section.content_title.is_some() {
         write_elem_start(writer, BytesStart::new("title"))?;
-        write_text(writer, BytesText::new(section.title.as_ref().unwrap()))?;
+        write_text(
+            writer,
+            BytesText::new(section.content_title.as_ref().unwrap()),
+        )?;
         write_elem_end(writer, BytesEnd::new("title"))?;
     }
     for fragment in section.fragments.values() {
