@@ -68,6 +68,8 @@ impl XRefKind {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML xref.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref.html
 pub struct XRef {
     /// Destination uriid.
     pub uriid: Option<String>,
@@ -223,6 +225,8 @@ pub enum PropertyValue {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML property.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-property.html
 pub struct Property {
     pub name: String,
     pub title: Option<String>,
@@ -234,6 +238,8 @@ pub struct Property {
 // Fragments
 
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML properties fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-properties-fragment.html
 pub struct PropertiesFragment {
     /// ID of the fragment.
     pub id: String,
@@ -271,6 +277,8 @@ impl PropertiesFragment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML xref fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref-fragment.html
 pub struct XRefFragment {
     /// ID of the fragment.
     pub id: String,
@@ -307,6 +315,8 @@ impl XRefFragment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-fragment.html
 pub struct Fragment {
     /// ID of the fragment.
     pub id: String,
@@ -362,7 +372,11 @@ impl Fragments {
     }
 }
 
+// Section
+
 #[derive(Debug, PartialEq, Eq)]
+/// A PSML Section.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-section.html
 pub struct Section {
     /// ID of the section.
     pub id: String,
@@ -416,7 +430,80 @@ impl Section {
     }
 }
 
+// Document
+
 #[derive(Debug, PartialEq, Eq)]
+/// Describes the publication.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-publication.html
+pub struct Publication {
+    /// Publication ID.
+    id: String,
+    /// Publication type.
+    pub_type: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+/// Metadata about this URI.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-uri.html
+pub struct URIDescriptor {
+    /// Docid of this document.
+    pub docid: Option<String>,
+    /// Type of the document.
+    pub doc_type: Option<String>,
+    /// Whether the URL is to the PageSeeder UI or is virtual.
+    pub source: Option<String>,
+    /// Title for the document.
+    pub title: Option<String>,
+    /// The URL type of the document.
+    pub url_type: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+/// Wrapper for metadata about the document.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-documentinfo.html
+pub struct DocumentInfo {
+    /// URI descriptor.
+    pub uri: Option<URIDescriptor>,
+    /// Publication descriptor.
+    pub publication: Option<Publication>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+/// Note on a document.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-note.html
+pub struct Note {
+    pub id: Option<String>,
+    /// Title of the note.
+    pub title: Option<String>,
+    /// Date and time this note was modified.
+    pub modified: String,
+    /// Labels on this note.
+    pub labels: Vec<String>,
+    /// Content in this note.
+    pub content: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+/// Metadata relating to a fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-locator.html
+pub struct FragmentLocator {
+    /// ID of the fragment.
+    pub fragment_id: String,
+    /// Notes on this fragment.
+    pub notes: Vec<Note>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+/// A PSML document.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-document.html
 pub struct Document {
+    /// Metadata about the document.
+    pub doc_info: DocumentInfo,
+    /// Fragment metadata
+    pub frag_info: Vec<FragmentLocator>,
+    /// Sections in the document.
     pub sections: IndexMap<String, Section>,
+    /// Index of the ToC relative to sections in this document.
+    /// 0 means before all sections.
+    pub toc_index: Option<usize>,
 }
