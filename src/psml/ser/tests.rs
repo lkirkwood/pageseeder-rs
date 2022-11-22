@@ -29,6 +29,10 @@ fn read_psmlobjs<T: PSMLObject>(string: &str) -> PSResult<Vec<T>> {
                 _en if _en == elem_name => objs.push(T::from_psml(&mut reader, elem)?),
                 _ => {}
             },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                _en if _en == elem_name => objs.push(T::from_psml_empty(&mut reader, elem)?),
+                _ => {}
+            },
             Event::Eof => break,
             _ => {}
         }
