@@ -1142,7 +1142,7 @@ impl PSMLObject for Fragment {
                     }
                 },
                 Event::Empty(elem_start) => match elem_start.name().as_ref() {
-                    fragment_elem_names!() => events.push(Event::Start(elem_start.into_owned())),
+                    fragment_elem_names!() => events.push(Event::Empty(elem_start.into_owned())),
                     other => {
                         return unexpected_elem!(
                             String::from_utf8_lossy(other),
