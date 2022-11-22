@@ -18,8 +18,8 @@ use quick_xml::{
 };
 
 use super::model::{
-    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, Section, XRef,
-    XRefDisplayKind, XRefKind,
+    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, Publication, Section,
+    XRef, XRefDisplayKind, XRefKind,
 };
 
 //// Macros
@@ -47,6 +47,13 @@ macro_rules! unexpected_elem {
         Err(PSError::ParseError {
             msg: format!("Unexpected element {} in {}: {}", $op, $context, $name),
         })
+    };
+}
+
+/// Expands to a Start OR Empty event with value assigned to parameter.
+macro_rules! start_elem {
+    ($name:ident) => {
+        quick_xml::events::Event::Start($name) | quick_xml::events::Event::Empty($name)
     };
 }
 
@@ -100,6 +107,26 @@ fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'stat
         }
         Ok(event) => return Ok(event.into_owned()),
     }
+}
+
+/// Reads attributes from an element and returns them.
+fn read_attrs<'a, R: BufRead>(elem: &'a BytesStart) -> PSResult<Vec<Attribute<'a>>> {
+    let mut attrs = Vec::new();
+    for attr_res in elem.attributes() {
+        match attr_res {
+            Err(err) => {
+                return Err(PSError::ParseError {
+                    msg: format!(
+                        "Failed to read attributes on {}: {:?}",
+                        String::from_utf8_lossy(elem.name().0),
+                        err
+                    ),
+                })
+            }
+            Ok(attr) => attrs.push(attr),
+        }
+    }
+    return Ok(attrs);
 }
 
 /// Decodes an attribute value and returns a PSResult.
@@ -395,7 +422,7 @@ fn read_string_property_values<'a, R: BufRead>(
     let mut current_val = String::new();
     loop {
         match read_event(reader)? {
-            Event::Start(elem) => match elem.name().as_ref() {
+            start_elem!(elem) => match elem.name().as_ref() {
                 b"value" => {}
                 other => {
                     return unexpected_elem!(
@@ -433,7 +460,7 @@ fn read_xref_property_values<'a, R: BufRead>(
     let mut values = Vec::new();
     loop {
         match read_event(reader)? {
-            Event::Start(elem) => values.push(PropertyValue::XRef(XRef::from_psml(reader, elem)?)),
+            start_elem!(elem) => values.push(PropertyValue::XRef(XRef::from_psml(reader, elem)?)),
             Event::End(elem) => match elem.name().as_ref() {
                 b"property" => break,
                 other => {
@@ -460,6 +487,16 @@ fn read_link_property_values<'a, R: BufRead>(
         match read_event(reader)? {
             Event::Start(elem) => match elem.name().as_ref() {
                 b"link" => event_buf.push(Event::Start(elem)),
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "link property"
+                    )
+                }
+            },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                b"link" => event_buf.push(Event::Empty(elem)),
                 other => {
                     return unexpected_elem!(
                         String::from_utf8_lossy(other),
@@ -507,6 +544,16 @@ fn read_markdown_property_values<'a, R: BufRead>(
                     )
                 }
             },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                b"markdown" => event_buf.push(Event::Empty(elem)),
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "opened",
+                        "markdown property"
+                    )
+                }
+            },
             Event::End(elem) => match elem.name().as_ref() {
                 b"markdown" => {
                     event_buf.push(Event::End(elem));
@@ -546,6 +593,16 @@ fn read_markup_property_values<'a, R: BufRead>(
                     return unexpected_elem!(
                         String::from_utf8_lossy(other),
                         "opened",
+                        "markup property"
+                    )
+                }
+            },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                markup_elem_names!() => event_buf.push(Event::Empty(elem)),
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "empty",
                         "markup property"
                     )
                 }
@@ -844,7 +901,7 @@ fn read_properties<'a, R: BufRead>(
                     ),
                 })
             }
-            Ok(Event::Start(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
+            Ok(start_elem!(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
             Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
                 b"properties-fragment" => break,
                 other => {
@@ -927,6 +984,16 @@ impl PSMLObject for Fragment {
                         )
                     }
                 },
+                Event::Empty(elem_start) => match elem_start.name().as_ref() {
+                    fragment_elem_names!() => events.push(Event::Start(elem_start.into_owned())),
+                    other => {
+                        return unexpected_elem!(
+                            String::from_utf8_lossy(other),
+                            "opened",
+                            "fragment"
+                        )
+                    }
+                },
                 Event::End(elem_end) => match elem_end.name().as_ref() {
                     b"fragment" => break,
                     fragment_elem_names!() => events.push(Event::End(elem_end.into_owned())),
@@ -994,7 +1061,7 @@ fn read_section_content<'a, R: BufRead>(
     let mut in_title = false;
     loop {
         match read_event(reader)? {
-            Event::Start(elem_start) => match elem_start.name().as_ref() {
+            start_elem!(elem_start) => match elem_start.name().as_ref() {
                 b"title" => in_title = true,
                 b"fragment" => {
                     let frag = Fragment::from_psml(reader, elem_start)?;
@@ -1142,3 +1209,23 @@ impl PSMLObject for Section {
         return Ok(());
     }
 }
+
+//// Document
+
+// Publication
+
+// impl PSMLObject for Publication {
+//     fn elem_name() -> &'static str {
+//         return "publication";
+//     }
+
+// fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+//     Self::match_elem_name(&elem)?;
+//     let mut id = None;
+//     let mut pub_type = None;
+// for attr_res in elem.attributes() {
+//     match attr_
+// }
+
+// }
+// }
