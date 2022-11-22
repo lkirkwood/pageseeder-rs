@@ -50,13 +50,6 @@ macro_rules! unexpected_elem {
     };
 }
 
-/// Expands to a Start OR Empty event with value assigned to parameter.
-macro_rules! start_elem {
-    ($name:ident) => {
-        quick_xml::events::Event::Start($name) | quick_xml::events::Event::Empty($name)
-    };
-}
-
 /// The names of the elements that may be in a markup property.
 macro_rules! markup_elem_names {
     () => {
@@ -252,8 +245,20 @@ pub trait PSMLObject: Sized {
         }
     }
 
-    /// Returns an instance of this psmlobject from a reader which has just read the start tag for this object.
+    /// Returns an instance from the start element for this obj and its reader.
+    /// Consumes events until the end element for this obj.
+    /// Set empty to true if the starting element is empty.
     fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self>;
+
+    /// Returns an instance from the empty element for this obj and its reader.
+    /// For objs which are not allowed to be denoted by empty elements, this returns an error.
+    #[allow(unused_variables)]
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        return Err(PSError::ParseError {
+            msg: format!("Element {} cannot be empty!", Self::elem_name()),
+        });
+    }
+
     /// Writes this object to a writer as psml.
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()>;
 }
@@ -371,6 +376,78 @@ impl PSMLObject for XRef {
         });
     }
 
+    // TODO find a better solution than copy paste
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<XRef> {
+        Self::match_elem_name(&elem)?;
+
+        let mut uriid = None;
+        let mut docid = None;
+        let mut href = None;
+        let mut config = None;
+        let mut display = XRefDisplayKind::Document;
+        let mut frag_id = None;
+        let mut labels = Vec::new();
+        let mut level = None;
+        let mut reverselink = true;
+        let mut reversetitle = None;
+        let mut title = None;
+        let mut xref_type = None;
+
+        for attr_res in elem.attributes() {
+            match attr_res {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed to read attribute on xref: {}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"uriid" => uriid = Some(decode_attr(reader, attr)?),
+                    b"docid" => docid = Some(decode_attr(reader, attr)?),
+                    b"href" => href = Some(decode_attr(reader, attr)?),
+                    b"config" => config = Some(decode_attr(reader, attr)?),
+                    b"display" => display = XRefDisplayKind::from_str(&decode_attr(reader, attr)?)?,
+                    b"frag" => frag_id = Some(decode_attr(reader, attr)?),
+                    b"labels" => labels.extend(
+                        decode_attr(reader, attr)?
+                            .split(',')
+                            .map(|s| s.to_string())
+                            .collect::<Vec<String>>(),
+                    ),
+                    b"level" => level = Some(decode_attr(reader, attr)?),
+                    b"reverselink" => match decode_attr(reader, attr)?.as_ref() {
+                        "true" => reverselink = true,
+                        "false" => reverselink = false,
+                        other => {
+                            return Err(PSError::ParseError {
+                                msg: format!("Unknown value for reverselink: {}", other),
+                            })
+                        }
+                    },
+                    b"reversetitle" => reversetitle = Some(decode_attr(reader, attr)?),
+                    b"title" => title = Some(decode_attr(reader, attr)?),
+                    b"type" => xref_type = Some(XRefKind::from_str(&decode_attr(reader, attr)?)?),
+                    _ => {}
+                },
+            }
+        }
+
+        return Ok(XRef {
+            uriid,
+            docid,
+            href,
+            content: String::new(),
+            config,
+            display,
+            frag_id: frag_id.unwrap_or("default".to_string()),
+            labels,
+            level,
+            reverselink,
+            reversetitle,
+            title,
+            xref_type,
+        });
+    }
+
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut elem_start = BytesStart::new("xref");
         write_attr_if_some(&mut elem_start, "uriid", self.uriid.as_ref());
@@ -422,12 +499,22 @@ fn read_string_property_values<'a, R: BufRead>(
     let mut current_val = String::new();
     loop {
         match read_event(reader)? {
-            start_elem!(elem) => match elem.name().as_ref() {
+            Event::Start(elem) => match elem.name().as_ref() {
                 b"value" => {}
                 other => {
                     return unexpected_elem!(
                         String::from_utf8_lossy(other),
                         "opened",
+                        "property with datatype string or date"
+                    )
+                }
+            },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                b"value" => values.push(PropertyValue::String(String::new())),
+                other => {
+                    return unexpected_elem!(
+                        String::from_utf8_lossy(other),
+                        "empty",
                         "property with datatype string or date"
                     )
                 }
@@ -460,7 +547,10 @@ fn read_xref_property_values<'a, R: BufRead>(
     let mut values = Vec::new();
     loop {
         match read_event(reader)? {
-            start_elem!(elem) => values.push(PropertyValue::XRef(XRef::from_psml(reader, elem)?)),
+            Event::Start(elem) => values.push(PropertyValue::XRef(XRef::from_psml(reader, elem)?)),
+            Event::Empty(elem) => {
+                values.push(PropertyValue::XRef(XRef::from_psml_empty(reader, elem)?))
+            }
             Event::End(elem) => match elem.name().as_ref() {
                 b"property" => break,
                 other => {
@@ -802,6 +892,69 @@ impl PSMLObject for Property {
         });
     }
 
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Property> {
+        Self::match_elem_name(&elem)?;
+        let mut pname = None;
+        let mut title = None;
+        let mut multiple = false;
+        let mut datatype = PropertyDatatype::String;
+        let mut values = Vec::new();
+        for attr_res in elem.attributes() {
+            match attr_res {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed to get property attribute: {:?}", err),
+                    })
+                }
+                Ok(attr) => {
+                    match attr.key.as_ref() {
+                        b"name" => {
+                            pname = Some(decode_attr(reader, attr)?);
+                        }
+                        b"title" => {
+                            title = Some(decode_attr(reader, attr)?);
+                        }
+                        b"value" => {
+                            if multiple == true {
+                                return Err(PSError::ParseError { msg: format!("Cannot use value attribute on property when multiple = true.") });
+                            } else {
+                                values.push(PropertyValue::String(decode_attr(reader, attr)?));
+                            }
+                        }
+                        b"multiple" => match decode_attr(reader, attr)?.as_ref() {
+                            "true" => multiple = true,
+                            "false" => multiple = false,
+                            other => {
+                                return Err(PSError::ParseError {
+                                    msg: format!("Unrecognized value for multiple attr: {}", other),
+                                })
+                            }
+                        },
+                        b"datatype" => {
+                            datatype =
+                                PropertyDatatype::from_str(decode_attr(reader, attr)?.as_ref())
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        if pname.is_none() {
+            return Err(PSError::ParseError {
+                msg: "Property missing required 'name' attribute".to_string(),
+            });
+        }
+
+        return Ok(Property {
+            name: pname.unwrap(),
+            title,
+            multiple,
+            datatype,
+            values,
+        });
+    }
+
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut elem_start = BytesStart::new("property");
         write_attr(&mut elem_start, "name", self.name.as_bytes());
@@ -885,24 +1038,12 @@ fn read_fragment_attrs<'a, R: BufRead>(
 // PropertiesFragment
 
 /// Reads properties inside a properties-fragment from a reader.
-fn read_properties<'a, R: BufRead>(
-    reader: &'a mut Reader<R>,
-    frag_id: &str,
-) -> PSResult<Vec<Property>> {
-    let mut buf = Vec::new();
+fn read_properties<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Vec<Property>> {
     let mut props = Vec::new();
     loop {
-        match reader.read_event_into(&mut buf) {
-            Err(err) => {
-                return Err(PSError::ParseError {
-                    msg: format!(
-                        "Failed to read events after properties-fragment {} start: {:?}",
-                        frag_id, err
-                    ),
-                })
-            }
-            Ok(start_elem!(prop_start)) => props.push(Property::from_psml(reader, prop_start)?),
-            Ok(Event::End(elem_end)) => match elem_end.name().as_ref() {
+        match read_event(reader)? {
+            Event::Start(prop_start) => props.push(Property::from_psml(reader, prop_start)?),
+            Event::End(elem_end) => match elem_end.name().as_ref() {
                 b"properties-fragment" => break,
                 other => {
                     return unexpected_elem!(
@@ -912,7 +1053,11 @@ fn read_properties<'a, R: BufRead>(
                     )
                 }
             },
-            Ok(Event::Eof) => break,
+            Event::Eof => {
+                return Err(PSError::ParseError {
+                    msg: "Unexpected EOF in properties fragment.".to_string(),
+                })
+            }
             _ => {}
         }
     }
@@ -931,13 +1076,25 @@ impl PSMLObject for PropertiesFragment {
     ) -> PSResult<PropertiesFragment> {
         Self::match_elem_name(&elem)?;
         let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
-        let properties = read_properties(reader, id.as_ref())?;
+        let properties = read_properties(reader)?;
 
         return Ok(PropertiesFragment {
             id,
             frag_type,
             labels,
             properties,
+        });
+    }
+
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
+
+        return Ok(PropertiesFragment {
+            id,
+            frag_type,
+            labels,
+            properties: vec![],
         });
     }
 
@@ -1022,6 +1179,18 @@ impl PSMLObject for Fragment {
         });
     }
 
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let (id, frag_type, labels) = read_fragment_attrs(reader, &elem)?;
+
+        return Ok(Fragment {
+            id,
+            frag_type,
+            labels,
+            content: vec![],
+        });
+    }
+
     fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
         let mut elem_start = BytesStart::new("fragment");
         write_attr(&mut elem_start, "id", &self.id.as_bytes());
@@ -1061,7 +1230,7 @@ fn read_section_content<'a, R: BufRead>(
     let mut in_title = false;
     loop {
         match read_event(reader)? {
-            start_elem!(elem_start) => match elem_start.name().as_ref() {
+            Event::Start(elem_start) => match elem_start.name().as_ref() {
                 b"title" => in_title = true,
                 b"fragment" => {
                     let frag = Fragment::from_psml(reader, elem_start)?;
@@ -1069,6 +1238,22 @@ fn read_section_content<'a, R: BufRead>(
                 }
                 b"properties-fragment" => {
                     let frag = PropertiesFragment::from_psml(reader, elem_start)?;
+                    fragments.insert(frag.id.to_owned(), Fragments::Properties(frag));
+                }
+                b"media-fragment" => todo!("Implement media fragment."),
+                b"xref-fragment" => todo!("Implement xref fragment."),
+                other => {
+                    return unexpected_elem!(String::from_utf8_lossy(other), "opened", "section")
+                }
+            },
+            Event::Empty(elem) => match elem.name().as_ref() {
+                b"title" => in_title = true,
+                b"fragment" => {
+                    let frag = Fragment::from_psml_empty(reader, elem)?;
+                    fragments.insert(frag.id.to_owned(), Fragments::Normal(frag));
+                }
+                b"properties-fragment" => {
+                    let frag = PropertiesFragment::from_psml_empty(reader, elem)?;
                     fragments.insert(frag.id.to_owned(), Fragments::Properties(frag));
                 }
                 b"media-fragment" => todo!("Implement media fragment."),
@@ -1183,6 +1368,55 @@ impl PSMLObject for Section {
                 overwrite,
                 fragment_types,
                 fragments: IndexMap::from(fragments),
+            });
+        }
+    }
+
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut id = None;
+        let mut title = None;
+        let mut edit = true;
+        let mut lock = false;
+        let mut overwrite = true;
+        let mut fragment_types = Vec::new();
+        for attr_res in elem.attributes() {
+            match attr_res {
+                Err(err) => {
+                    return Err(PSError::ParseError {
+                        msg: format!("Failed reading attribute on section: {:?}", err),
+                    })
+                }
+                Ok(attr) => match attr.key.as_ref() {
+                    b"id" => id = Some(decode_attr(reader, attr)?),
+                    b"title" => title = Some(decode_attr(reader, attr)?),
+                    b"edit" => edit = decode_bool_attr(reader, attr)?,
+                    b"lock" => lock = decode_bool_attr(reader, attr)?,
+                    b"overwrite" => overwrite = decode_bool_attr(reader, attr)?,
+                    b"fragmenttype" => fragment_types.extend(decode_list_attr(reader, attr)?),
+                    other => {
+                        return Err(PSError::ParseError {
+                            msg: format!("Unexpected attribute on section: {:?}", other),
+                        })
+                    }
+                },
+            }
+        }
+
+        if id.is_none() {
+            return Err(PSError::ParseError {
+                msg: format!("Section missing required attribute id."),
+            });
+        } else {
+            return Ok(Section {
+                id: id.unwrap(),
+                title,
+                content_title: None,
+                edit,
+                lock,
+                overwrite,
+                fragment_types,
+                fragments: IndexMap::new(),
             });
         }
     }
