@@ -19,7 +19,7 @@ use quick_xml::{
 
 use super::model::{
     Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, Publication, Section,
-    XRef, XRefDisplayKind, XRefKind,
+    URIDescriptor, XRef, XRefDisplayKind, XRefKind,
 };
 
 //// Macros
@@ -1411,6 +1411,96 @@ impl PSMLObject for Publication {
         write_attr_if_some(&mut elem, "type", self.pub_type.as_ref());
         write_elem_empty(writer, elem)?;
 
+        return Ok(());
+    }
+}
+
+// URIDescriptor
+
+impl PSMLObject for URIDescriptor {
+    fn elem_name() -> &'static str {
+        return "uri";
+    }
+
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut docid = None;
+        let mut doc_type = None;
+        let mut source = None;
+        let mut title = None;
+        let mut url_type = None;
+        for attr in read_attrs(&elem)? {
+            match attr.key.as_ref() {
+                b"docid" => docid = Some(decode_attr(&reader, attr)?),
+                b"doc_type" => doc_type = Some(decode_attr(&reader, attr)?),
+                b"source" => source = Some(decode_attr(&reader, attr)?),
+                b"title" => title = Some(decode_attr(&reader, attr)?),
+                b"url_type" => url_type = Some(decode_attr(&reader, attr)?),
+                _ => {}
+            }
+        }
+
+        loop {
+            match read_event(reader)? {
+                Event::Start(elem) | Event::Empty(elem) => {
+                    unexpected_elem!(&elem, "in uri descriptor")
+                }
+                Event::End(elem) => match elem.name().as_ref() {
+                    b"uri" => break,
+                    other => unexpected_elem!(&other, "closed in uri descriptor"),
+                },
+                Event::Eof => {
+                    return Err(PSError::ParseError {
+                        msg: "Unexpected EOF in uri descriptor".to_string(),
+                    })
+                }
+                _ => {}
+            }
+        }
+        return Ok(URIDescriptor {
+            docid,
+            doc_type,
+            source,
+            title,
+            url_type,
+        });
+    }
+
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut docid = None;
+        let mut doc_type = None;
+        let mut source = None;
+        let mut title = None;
+        let mut url_type = None;
+        for attr in read_attrs(&elem)? {
+            match attr.key.as_ref() {
+                b"docid" => docid = Some(decode_attr(&reader, attr)?),
+                b"doc_type" => doc_type = Some(decode_attr(&reader, attr)?),
+                b"source" => source = Some(decode_attr(&reader, attr)?),
+                b"title" => title = Some(decode_attr(&reader, attr)?),
+                b"url_type" => url_type = Some(decode_attr(&reader, attr)?),
+                _ => {}
+            }
+        }
+
+        return Ok(URIDescriptor {
+            docid,
+            doc_type,
+            source,
+            title,
+            url_type,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem = BytesStart::new("uri");
+        write_attr_if_some(&mut elem, "docid", self.docid.as_ref());
+        write_attr_if_some(&mut elem, "doc_type", self.doc_type.as_ref());
+        write_attr_if_some(&mut elem, "source", self.source.as_ref());
+        write_attr_if_some(&mut elem, "title", self.title.as_ref());
+        write_attr_if_some(&mut elem, "url_type", self.url_type.as_ref());
+        write_elem_empty(writer, elem)?;
         return Ok(());
     }
 }
