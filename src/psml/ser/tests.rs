@@ -11,7 +11,7 @@ use crate::{
     error::PSResult,
     psml::model::{
         Fragment, Fragments, PropertiesFragment, Property, PropertyDatatype, PropertyValue,
-        Publication, Section, XRef,
+        Publication, Section, URIDescriptor, XRef,
     },
 };
 
@@ -361,4 +361,21 @@ fn publication_from_psml() {
 fn publication_to_psml() {
     let pub_str = write_psmlobjs(publications()).unwrap();
     assert_eq!(PUBLICATION, pub_str);
+}
+
+//// URIDescriptor
+
+// Fixtures
+
+const URI_DESCRIPTOR: &'static str =
+    "<uri docid=\"document id\" type=\"doc type\" title=\"Document.\"/>";
+
+fn uri_descriptors() -> Vec<URIDescriptor> {
+    return vec![URIDescriptor {
+        docid: Some("document id".to_string()),
+        doc_type: Some("doc type".to_string()),
+        source: None,
+        title: Some("Document.".to_string()),
+        url_type: None,
+    }];
 }
