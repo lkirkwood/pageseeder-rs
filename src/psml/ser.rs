@@ -18,8 +18,8 @@ use quick_xml::{
 };
 
 use super::model::{
-    Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue, Publication, Section,
-    URIDescriptor, XRef, XRefDisplayKind, XRefKind,
+    DocumentInfo, Fragment, Fragments, PropertiesFragment, PropertyDatatype, PropertyValue,
+    Publication, Section, URIDescriptor, XRef, XRefDisplayKind, XRefKind,
 };
 
 //// Macros
@@ -1501,6 +1501,65 @@ impl PSMLObject for URIDescriptor {
         write_attr_if_some(&mut elem, "title", self.title.as_ref());
         write_attr_if_some(&mut elem, "url_type", self.url_type.as_ref());
         write_elem_empty(writer, elem)?;
+        return Ok(());
+    }
+}
+
+// DocumentInfo
+
+impl PSMLObject for DocumentInfo {
+    fn elem_name() -> &'static str {
+        return "documentinfo";
+    }
+
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, _elem: BytesStart) -> PSResult<Self> {
+        let mut uri = None;
+        let mut publication = None;
+        loop {
+            match read_event(reader)? {
+                Event::Start(elem) => match elem.name().as_ref() {
+                    b"uri" => uri = Some(URIDescriptor::from_psml(reader, elem)?),
+                    b"publication" => publication = Some(Publication::from_psml(reader, elem)?),
+                    other => unexpected_elem!(other, "opened in document info"),
+                },
+                Event::Empty(elem) => match elem.name().as_ref() {
+                    b"uri" => uri = Some(URIDescriptor::from_psml_empty(reader, elem)?),
+                    b"publication" => {
+                        publication = Some(Publication::from_psml_empty(reader, elem)?)
+                    }
+                    other => unexpected_elem!(other, "in document info"),
+                },
+                Event::End(elem) => match elem.name().as_ref() {
+                    b"documentinfo" => break,
+                    other => unexpected_elem!(other, "closed in document info"),
+                },
+                Event::Eof => {
+                    return Err(PSError::ParseError {
+                        msg: "Unexpected EOF in document info.".to_string(),
+                    })
+                }
+                _ => {}
+            }
+        }
+        return Ok(DocumentInfo { uri, publication });
+    }
+
+    fn from_psml_empty<R: BufRead>(_reader: &mut Reader<R>, _elem: BytesStart) -> PSResult<Self> {
+        return Ok(DocumentInfo {
+            uri: None,
+            publication: None,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        write_elem_start(writer, BytesStart::new("documentinfo"))?;
+        if self.uri.is_some() {
+            self.uri.as_ref().unwrap().to_psml(writer)?;
+        }
+        if self.publication.is_some() {
+            self.publication.as_ref().unwrap().to_psml(writer)?;
+        }
+        write_elem_end(writer, BytesEnd::new("documentinfo"))?;
         return Ok(());
     }
 }
