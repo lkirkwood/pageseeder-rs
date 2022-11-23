@@ -437,9 +437,9 @@ impl Section {
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-publication.html
 pub struct Publication {
     /// Publication ID.
-    id: String,
+    pub id: String,
     /// Publication type.
-    pub_type: Option<String>,
+    pub pub_type: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
