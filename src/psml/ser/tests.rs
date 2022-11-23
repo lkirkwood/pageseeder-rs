@@ -11,7 +11,7 @@ use crate::{
     error::PSResult,
     psml::model::{
         Fragment, Fragments, PropertiesFragment, Property, PropertyDatatype, PropertyValue,
-        Section, XRef,
+        Publication, Section, XRef,
     },
 };
 
@@ -288,7 +288,7 @@ fn fragment_to_psml() {
     );
 }
 
-/// Section
+//// Section
 
 // Fixtures
 
@@ -334,4 +334,31 @@ fn section_to_psml() {
         sections_str,
         fs::read_to_string("test/section.psml").unwrap()
     );
+}
+
+//// Publication
+
+// Fixtures
+
+const PUBLICATION: &'static str = "<publication id=\"mypubl\" type=\"report\"/>\n";
+
+fn publications() -> Vec<Publication> {
+    return vec![Publication {
+        id: "mypubl".to_string(),
+        pub_type: Some("report".to_string()),
+    }];
+}
+
+// Tests
+
+#[test]
+fn publication_from_psml() {
+    let str_pubs = read_psmlobjs(PUBLICATION).unwrap();
+    assert_eq!(publications(), str_pubs);
+}
+
+#[test]
+fn publication_to_psml() {
+    let pub_str = write_psmlobjs(publications()).unwrap();
+    assert_eq!(PUBLICATION, pub_str);
 }

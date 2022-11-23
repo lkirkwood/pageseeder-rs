@@ -91,7 +91,7 @@ fn read_event<'a, R: BufRead>(reader: &'a mut Reader<R>) -> PSResult<Event<'stat
 }
 
 /// Reads attributes from an element and returns them.
-fn read_attrs<'a, R: BufRead>(elem: &'a BytesStart) -> PSResult<Vec<Attribute<'a>>> {
+fn read_attrs<'a>(elem: &'a BytesStart) -> PSResult<Vec<Attribute<'a>>> {
     let mut attrs = Vec::new();
     for attr_res in elem.attributes() {
         match attr_res {
@@ -170,6 +170,23 @@ fn write_attr_if_some(elem: &mut BytesStart, key: &str, value: Option<&String>) 
 fn write_elem_start<W: Write>(writer: &mut Writer<W>, elem: BytesStart) -> PSResult<()> {
     let name = elem.name().0.to_owned();
     match writer.write_event(Event::Start(elem)) {
+        Ok(_) => return Ok(()),
+        Err(err) => {
+            return Err(PSError::ParseError {
+                msg: format!(
+                    "Error writing element {} start to writer: {:?}",
+                    String::from_utf8_lossy(&name),
+                    err
+                ),
+            })
+        }
+    }
+}
+
+/// Writes an element start to a writer and returns a PSResult.
+fn write_elem_empty<W: Write>(writer: &mut Writer<W>, elem: BytesStart) -> PSResult<()> {
+    let name = elem.name().0.to_owned();
+    match writer.write_event(Event::Empty(elem)) {
         Ok(_) => return Ok(()),
         Err(err) => {
             return Err(PSError::ParseError {
@@ -1322,18 +1339,78 @@ impl PSMLObject for Section {
 
 // Publication
 
-// impl PSMLObject for Publication {
-//     fn elem_name() -> &'static str {
-//         return "publication";
-//     }
+impl PSMLObject for Publication {
+    fn elem_name() -> &'static str {
+        return "publication";
+    }
 
-// fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
-//     Self::match_elem_name(&elem)?;
-//     let mut id = None;
-//     let mut pub_type = None;
-// for attr_res in elem.attributes() {
-//     match attr_
-// }
+    fn from_psml<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut id = None;
+        let mut pub_type = None;
+        for attr in read_attrs(&elem)? {
+            match attr.key.as_ref() {
+                b"id" => id = Some(decode_attr(&reader, attr)?),
+                b"type" => pub_type = Some(decode_attr(&reader, attr)?),
+                _ => {}
+            }
+        }
+        if id.is_none() {
+            return Err(PSError::ParseError {
+                msg: format!("Publication missing required attribute id."),
+            });
+        }
+        loop {
+            match read_event(reader)? {
+                Event::End(elem) => match elem.name().as_ref() {
+                    b"publication" => break,
+                    other => unexpected_elem!(other, "closed in publication"),
+                },
+                Event::Start(elem) | Event::Empty(elem) => {
+                    unexpected_elem!(&elem, "in publication")
+                }
+                Event::Eof => {
+                    return Err(PSError::ParseError {
+                        msg: "Unexpected EOF in publication.".to_string(),
+                    })
+                }
+                _ => {}
+            }
+        }
+        return Ok(Publication {
+            id: id.unwrap(),
+            pub_type,
+        });
+    }
 
-// }
-// }
+    fn from_psml_empty<R: BufRead>(reader: &mut Reader<R>, elem: BytesStart) -> PSResult<Self> {
+        Self::match_elem_name(&elem)?;
+        let mut id = None;
+        let mut pub_type = None;
+        for attr in read_attrs(&elem)? {
+            match attr.key.as_ref() {
+                b"id" => id = Some(decode_attr(&reader, attr)?),
+                b"type" => pub_type = Some(decode_attr(&reader, attr)?),
+                _ => {}
+            }
+        }
+        if id.is_none() {
+            return Err(PSError::ParseError {
+                msg: format!("Publication missing required attribute id."),
+            });
+        }
+        return Ok(Publication {
+            id: id.unwrap(),
+            pub_type,
+        });
+    }
+
+    fn to_psml<W: Write>(&self, writer: &mut Writer<W>) -> PSResult<()> {
+        let mut elem = BytesStart::new("publication");
+        write_attr(&mut elem, "id", &self.id.as_bytes());
+        write_attr_if_some(&mut elem, "type", self.pub_type.as_ref());
+        write_elem_empty(writer, elem)?;
+
+        return Ok(());
+    }
+}
