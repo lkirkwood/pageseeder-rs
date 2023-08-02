@@ -1,2 +1,3 @@
-pub mod model;
-pub mod ser;
+mod gen;
+#[cfg(test)]
+mod tests;
