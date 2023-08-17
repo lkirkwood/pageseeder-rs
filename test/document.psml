@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document id="40942" schemaversion="1.4" type="node" date="2023-08-03T07:27:24+10:00"
+    status="Initiated" version="current" level="portable">
+    <documentinfo>
+        <uri id="40942" external="false" mediatype="application/vnd.pageseeder.psml+xml"
+            documenttype="node" created="2023-01-19T11:45:01+11:00"
+            modified="2023-08-03T07:27:24+10:00" scheme="http" host="ps-netdox.allette.com.au"
+            port="80" path="/ps/netdox/network/website/nodes/_nd_node_xovm_192_168_13_12.psml"
+            decodedpath="/ps/netdox/network/website/nodes/_nd_node_xovm_192_168_13_12.psml"
+            docid="_nd_node_xovm_192_168_13_12" title="ato – testing (sy4)">
+            <displaytitle>ato – testing (sy4)</displaytitle>
+            <labels>show-reversexrefs,netdox-default,AT</labels>
+        </uri>
+        <reversexrefs>
+            <reversexref uriid="17257"
+                href="/ps/netdox/network/website/ips/192.168.13.0_24/_nd_ipv4_192_168_13_12.psml"
+                frag="header" urititle="192.168.13.12" urilabels="netdox-default,show-reversexrefs"
+                docid="_nd_ipv4_192_168_13_12" mediatype="application/vnd.pageseeder.psml+xml"
+                documenttype="ip" id="3655096" title="" type="none" forwardtype="none"
+                forwarddisplay="document" forwardfrag="default" />
+            <reversexref uriid="18082"
+                href="/ps/netdox/network/website/ips/103.127.18.0_24/_nd_ipv4_103_127_18_130.psml"
+                frag="header" urititle="103.127.18.130" urilabels="show-reversexrefs,netdox-default"
+                docid="_nd_ipv4_103_127_18_130" mediatype="application/vnd.pageseeder.psml+xml"
+                documenttype="ip" id="3655197" title="" type="none" forwardtype="none"
+                forwarddisplay="document" forwardfrag="default" />
+            <reversexref uriid="29630"
+                href="/ps/netdox/network/website/domains/_nd_domain_ato-bkp_allette_com_au.psml"
+                frag="header" urititle="ato-bkp.allette.com.au"
+                urilabels="show-reversexrefs,netdox-default,AT"
+                docid="_nd_domain_ato-bkp_allette_com_au"
+                mediatype="application/vnd.pageseeder.psml+xml" documenttype="domain" id="3657154"
+                title="" type="none" forwardtype="none" forwarddisplay="document"
+                forwardfrag="default" />
+            <reversexref uriid="14640" href="/ps/netdox/network/website/xopub.psml" frag="pool_2"
+                urititle="Xen Orchestra Pools" mediatype="application/vnd.pageseeder.psml+xml"
+                documenttype="references" id="4022099" title="" type="none" forwardtype="embed"
+                forwarddisplay="document" forwardfrag="default" level="1" />
+        </reversexrefs>
+    </documentinfo>
+    <fragmentinfo structure-modified="2023-07-05T06:31:34+10:00">
+        <locator id="119333" fragment="domains" />
+        <locator id="120191" fragment="diagram" editid="3771947"
+            modified="2023-07-05T06:35:14+10:00" />
+        <locator id="122189" fragment="snapshots" editid="4081615"
+            modified="2023-08-03T07:27:24+10:00" />
+        <locator id="124244" fragment="tags" editid="4081614" modified="2023-08-03T07:27:24+10:00" />
+        <locator id="119334" fragment="ips" editid="4070011" modified="2023-08-02T06:35:20+10:00" />
+        <locator id="129167" fragment="header" editid="3242649" modified="2023-05-16T06:28:49+10:00" />
+        <locator id="119332" fragment="core" editid="2700136" modified="2023-03-18T06:27:49+11:00" />
+        <locator id="122930" fragment="backups" editid="3760293"
+            modified="2023-07-04T07:04:37+10:00" />
+        <locator id="120193" fragment="search" editid="2447102" modified="2023-01-27T17:34:56+11:00">
+            <labels>s-hide-content</labels>
+        </locator>
+    </fragmentinfo>
+    <metadata editid="2351343" modified="2023-01-19T11:45:01+11:00">
+        <properties xmlns:t="http://pageseeder.com/psml/template">
+            <property name="template_version" title="Template version" value="1.2" />
+        </properties>
+    </metadata>
+    <section id="title">
+        <fragment id="title">
+            <heading level="2">Node</heading>
+            <heading level="1">ato – testing (sy4)</heading>
+        </fragment>
+    </section>
+    <section id="header">
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="header">
+            <property name="name" title="Name" value="ato – testing (sy4)" />
+            <property name="identity" title="Identity" value="192.168.13.12" />
+            <property name="type" title="Node Type" value="xovm" />
+            <property name="location" title="Location" value="SY4" />
+            <property datatype="xref" name="org" title="Organization">
+                <xref id="3242644" frag="default" reversefrag="header" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="25950" href="/ps/netdox/network/website/organizations/ato.psml"
+                    urititle="ATO" urilabels="admin,organisation"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="organization">ATO</xref>
+            </property>
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="domains">
+            <property datatype="xref" name="domain" title="Domain">
+                <xref id="2351340" frag="default" reversefrag="domains" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="29630"
+                    href="/ps/netdox/network/website/domains/_nd_domain_ato-bkp_allette_com_au.psml"
+                    docid="_nd_domain_ato-bkp_allette_com_au" urititle="ato-bkp.allette.com.au"
+                    urilabels="show-reversexrefs,netdox-default,AT"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="domain">
+                    ato-bkp.allette.com.au</xref>
+            </property>
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="ips">
+            <property datatype="xref" name="ipv4" title="Private IP">
+                <xref id="2351341" frag="default" reversefrag="ips" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="17257"
+                    href="/ps/netdox/network/website/ips/192.168.13.0_24/_nd_ipv4_192_168_13_12.psml"
+                    docid="_nd_ipv4_192_168_13_12" urititle="192.168.13.12"
+                    urilabels="netdox-default,show-reversexrefs"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="ip">192.168.13.12</xref>
+            </property>
+            <property datatype="xref" name="ipv4" title="Public IP">
+                <xref id="2615951" frag="default" reversefrag="ips" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="18082"
+                    href="/ps/netdox/network/website/ips/103.127.18.0_24/_nd_ipv4_103_127_18_130.psml"
+                    docid="_nd_ipv4_103_127_18_130" urititle="103.127.18.130"
+                    urilabels="show-reversexrefs,netdox-default"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="ip">103.127.18.130</xref>
+            </property>
+        </properties-fragment>
+    </section>
+    <section id="body">
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="core">
+            <property name="description" title="Description" value="ATO backup server" />
+            <property name="uuid" title="UUID" value="0c5d6f2d-51dc-8145-da94-e3c61e99c12d" />
+            <property datatype="xref" name="ipv4" title="Host IP">
+                <xref id="2351338" frag="default" reversefrag="core" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="16463"
+                    href="/ps/netdox/network/website/ips/192.168.7.0_24/_nd_ipv4_192_168_7_9.psml"
+                    docid="_nd_ipv4_192_168_7_9" urititle="192.168.7.9"
+                    urilabels="netdox-default,show-reversexrefs"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="ip">192.168.7.9</xref>
+            </property>
+            <property datatype="xref" name="host" title="Host Node">
+                <xref id="2700133" frag="default" reversefrag="core" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="42471" href="/ps/netdox/network/website/hardware/cisco_2.psml"
+                    docid="_nd_node_hardware_cisco_2" urititle="Cisco 2"
+                    urilabels="show-reversexrefs,netdox-default,AS"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="node">Cisco 2</xref>
+            </property>
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="os_version">
+            <property name="os-name" title="OS name" value="CentOS Linux release 7.9.2009 (Core)" />
+            <property name="os-uname" title="OS uname" value="3.10.0-1160.53.1.el7.x86_64" />
+            <property name="os-distro" title="Distro" value="centos" />
+            <property name="os-major" title="Major version" value="7" />
+            <property name="os-minor" title="Minor version" value="9" />
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="tags">
+            <property name="tag" title="Tag" value="other-app" />
+            <property name="tag" title="Tag" value="test" />
+            <property name="tag" title="Tag" value="sy4" />
+            <property name="tag" title="Tag" value="ato" />
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="snapshots">
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-07-26 02:01:08" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-08-03 02:01:20" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-08-02 02:01:20" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-08-01 02:01:18" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-07-29 02:01:14" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-07-28 02:01:09" />
+            <property datatype="datetime" name="snapshot" title="Snapshot Date"
+                value="2023-07-27 02:01:10" />
+        </properties-fragment>
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="backups" />
+    </section>
+    <section id="footer">
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="search"
+            labels="s-hide-content">
+            <property name="terms" title="Search Terms" />
+        </properties-fragment>
+        <fragment xmlns:t="http://pageseeder.com/psml/template" id="diagram">
+            <para>
+                <image src="/ps/netdox/network/website/diagrams/_nd_node_xovm_192_168_13_12.svg"
+                    uriid="41265" />
+            </para>
+        </fragment>
+    </section>
+    <section id="notes">
+        <fragment xmlns:t="http://pageseeder.com/psml/template" id="notes">
+            <para>—</para>
+        </fragment>
+    </section>
+</document>

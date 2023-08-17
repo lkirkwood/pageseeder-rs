@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document id="40942" schemaversion="1.4" type="node" date="2023-08-03T07:27:24+10:00"
+    status="Initiated" version="current" level="portable">
+    <section id="body">
+        <properties-fragment xmlns:t="http://pageseeder.com/psml/template" id="core">
+            <property name="description" title="Description" value="ATO backup server" />
+            <property name="uuid" title="UUID" value="0c5d6f2d-51dc-8145-da94-e3c61e99c12d" />
+            <property datatype="xref" name="ipv4" title="Host IP">
+                <xref id="2351338" frag="default" reversefrag="core" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="16463"
+                    href="/ps/netdox/network/website/ips/192.168.7.0_24/_nd_ipv4_192_168_7_9.psml"
+                    docid="_nd_ipv4_192_168_7_9" urititle="192.168.7.9"
+                    urilabels="netdox-default,show-reversexrefs"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="ip">192.168.7.9</xref>
+            </property>
+            <property datatype="xref" name="host" title="Host Node">
+                <xref id="2700133" frag="default" reversefrag="core" reversetitle=""
+                    reverselink="true" reversetype="none" display="document" type="none"
+                    uriid="42471" href="/ps/netdox/network/website/hardware/cisco_2.psml"
+                    docid="_nd_node_hardware_cisco_2" urititle="Cisco 2"
+                    urilabels="show-reversexrefs,netdox-default,AS"
+                    mediatype="application/vnd.pageseeder.psml+xml" documenttype="node">Cisco 2</xref>
+            </property>
+        </properties-fragment>
+    </section>
+</document>

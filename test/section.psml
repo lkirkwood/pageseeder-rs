@@ -1,2 +1,0 @@
-<section id="section_id" title="Section Title!"><title>Content Title</title><fragment id="0"><para>Some paragraph text</para></fragment><properties-fragment id="props"><property name="pname1" title="Prop1" value="value1"></property></properties-fragment></section>
-<section id="sec2"><fragment id="1"><para>This is <bold>more</bold> paragraph text.</para></fragment></section>

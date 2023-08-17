@@ -1,5 +1,0 @@
-<property name="part-number" value="PX-67S93Q"></property>
-<property name="languages" multiple="true"><value>de</value><value>en</value><value>fr</value></property>
-<property name="author" datatype="xref"><xref href="/ps/authors/english/" frag="default">Lewis Carroll</xref></property>
-<property name="example" datatype="markdown"><markdown>The **quick** brown *fox* jumps over the `lazy` dog.</markdown></property>
-<property name="example" datatype="markup"><para>The <bold>quick</bold> brown <italic>fox</italic></para><para>jumps over the <monospace>lazy</monospace> dog</para></property>
