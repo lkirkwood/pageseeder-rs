@@ -1,100 +1,72 @@
-use indexmap::IndexMap;
-use quick_xml::events::Event;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use crate::error::{PSError, PSResult};
+use super::text::{Heading, Image, Para};
 
 // XRef
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub enum XRefDisplayKind {
+    #[serde(rename = "document")]
     Document,
+    #[serde(rename = "document+manual")]
     DocumentManual,
+    #[serde(rename = "document+fragment")]
     DocumentFragment,
+    #[serde(rename = "manual")]
     Manual,
+    #[serde(rename = "template")]
     Template,
 }
 
-impl XRefDisplayKind {
-    /// Returns xref display kind from string.
-    pub fn from_str(string: &str) -> PSResult<XRefDisplayKind> {
-        match string {
-            "document" => Ok(XRefDisplayKind::Document),
-            "document+manual" => Ok(XRefDisplayKind::DocumentManual),
-            "document+fragment" => Ok(XRefDisplayKind::DocumentFragment),
-            "manual" => Ok(XRefDisplayKind::Manual),
-            "template" => Ok(XRefDisplayKind::Template),
-            other => Err(PSError::ParseError {
-                msg: format!("Unknown exref display kind: {}", other),
-            }),
-        }
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::Document => "document",
-            Self::DocumentManual => "document+manual",
-            Self::DocumentFragment => "document+fragment",
-            Self::Manual => "manual",
-            Self::Template => "template",
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum XRefKind {
     None,
     Alternate,
     Math,
 }
 
-impl XRefKind {
-    pub fn from_str(string: &str) -> PSResult<XRefKind> {
-        match string {
-            "none" => Ok(XRefKind::None),
-            "alternate" => Ok(XRefKind::Alternate),
-            "math" => Ok(XRefKind::Math),
-            other => Err(PSError::ParseError {
-                msg: format!("Unknown xref type {}", other),
-            }),
-        }
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Alternate => "alternate",
-            Self::Math => "math",
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML xref.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref.html
 pub struct XRef {
+    #[serde(rename = "@uriid")]
     /// Destination uriid.
     pub uriid: Option<String>,
+    #[serde(rename = "@docid")]
     /// Destination docid.
     pub docid: Option<String>,
+    #[serde(rename = "@href")]
     /// Destination href.#
     pub href: Option<String>,
+    #[serde(rename = "$text")]
     /// Text content to display instead of xref.
     pub content: String,
+    #[serde(rename = "@config")]
     /// XRef config name.
     pub config: Option<String>,
+    #[serde(rename = "@display")]
     /// How target link text should be displayed.
     pub display: XRefDisplayKind,
+    #[serde(rename = "@frag")]
     /// ID of fragment to link to.
     pub frag_id: String,
+    #[serde(rename = "@labels")]
     /// Comma separated xref labels.
-    pub labels: Vec<String>,
+    pub labels: Option<String>,
+    #[serde(rename = "@level")]
     /// Level for heading numbering of target document (1-5).
     pub level: Option<String>,
+    #[serde(rename = "@reverselink")]
     /// Whether xref is bidirectional.
     pub reverselink: bool,
+    #[serde(rename = "@reversetitle")]
     /// Manually entered title for reverse xref.
     pub reversetitle: Option<String>,
+    #[serde(rename = "@title")]
     /// Manually entered title for xref.
     pub title: Option<String>,
+    #[serde(rename = "@type")]
     /// XRef type
     pub xref_type: Option<XRefKind>,
 }
@@ -110,7 +82,7 @@ impl XRef {
             config: None,
             display: XRefDisplayKind::Document,
             frag_id: "default".to_string(),
-            labels: Vec::new(),
+            labels: None,
             level: None,
             reverselink: true,
             reversetitle: None,
@@ -129,7 +101,7 @@ impl XRef {
             config: None,
             display: XRefDisplayKind::Document,
             frag_id: "default".to_string(),
-            labels: Vec::new(),
+            labels: None,
             level: None,
             reverselink: true,
             reversetitle: None,
@@ -148,7 +120,7 @@ impl XRef {
             config: None,
             display: XRefDisplayKind::Document,
             frag_id: "default".to_string(),
-            labels: Vec::new(),
+            labels: None,
             level: None,
             reverselink: true,
             reversetitle: None,
@@ -181,74 +153,68 @@ impl XRef {
 
 /// Property datatype attribute values.
 /// Does not support custom datatypes - they will be converted to "string".
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PropertyDatatype {
     String,
-    Date,
+    Datetime,
     XRef,
     Link,
     Markdown,
     Markup,
 }
 
-impl PropertyDatatype {
-    pub fn from_str(string: &str) -> PropertyDatatype {
-        match string {
-            "date" => PropertyDatatype::Date,
-            "xref" => PropertyDatatype::XRef,
-            "link" => PropertyDatatype::Link,
-            "markdown" => PropertyDatatype::Markdown,
-            "markup" => PropertyDatatype::Markup,
-            _ => PropertyDatatype::String,
-        }
-    }
-
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::String => "string",
-            Self::Date => "date",
-            Self::XRef => "xref",
-            Self::Link => "link",
-            Self::Markdown => "markdown",
-            Self::Markup => "markup",
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PropertyValue {
-    String(String),
     XRef(XRef),
-    Link(Vec<Event<'static>>),
-    Markdown(Vec<Event<'static>>),
-    Markup(Vec<Event<'static>>),
+    Link(String),
+    Markdown(String),
+    Markup(String),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "property")]
 /// A PSML property.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-property.html
 pub struct Property {
+    #[serde(rename = "@name")]
     pub name: String,
+    #[serde(rename = "@title")]
     pub title: Option<String>,
-    pub datatype: PropertyDatatype,
-    pub multiple: bool,
+    #[serde(rename = "@datatype")]
+    pub datatype: Option<PropertyDatatype>,
+    #[serde(rename = "@multiple")]
+    pub multiple: Option<bool>,
+    #[serde(rename = "@value")]
+    pub attr_value: Option<String>,
+    #[serde(rename = "$value", default)]
     pub values: Vec<PropertyValue>,
 }
 
 // Fragments
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML properties fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-properties-fragment.html
 pub struct PropertiesFragment {
+    #[serde(rename = "@id")]
     /// ID of the fragment.
     pub id: String,
+    #[serde(rename = "@type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Template type for the fragment.
     pub frag_type: Option<String>,
+    #[serde(rename = "@labels")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Labels on this fragment.
-    pub labels: Vec<String>,
+    pub labels: Option<String>,
+    #[serde(rename = "property", default)]
     /// Properties in this fragment.
     pub properties: Vec<Property>,
+    #[serde(flatten)]
+    /// Other attributes on this fragment.
+    pub attrs: HashMap<String, String>,
 }
 
 impl PropertiesFragment {
@@ -257,14 +223,15 @@ impl PropertiesFragment {
         return PropertiesFragment {
             id,
             frag_type: None,
-            labels: Vec::new(),
-            properties: Vec::new(),
+            labels: None,
+            properties: vec![],
+            attrs: HashMap::new(),
         };
     }
 
     /// Adds the properties to the fragment and returns it.
     pub fn with_properties(self, properties: Vec<Property>) -> PropertiesFragment {
-        return PropertiesFragment {
+        PropertiesFragment {
             id: self.id,
             frag_type: self.frag_type,
             labels: self.labels,
@@ -272,21 +239,38 @@ impl PropertiesFragment {
                 .into_iter()
                 .flatten()
                 .collect::<Vec<Property>>(),
-        };
+            attrs: self.attrs,
+        }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct BlockXRef {
+    #[serde(rename = "@archived")]
+    pub archived: bool,
+
+    #[serde(rename = "@display")]
+    pub display: Option<XRefDisplayKind>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML xref fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref-fragment.html
 pub struct XRefFragment {
+    #[serde(rename = "@id")]
     /// ID of the fragment.
     pub id: String,
+    #[serde(rename = "@type")]
     /// Template type for the fragment.
     pub frag_type: Option<String>,
+    #[serde(rename = "@labels")]
     /// Labels on this fragment.
-    pub labels: Vec<String>,
-    pub xrefs: Vec<XRef>,
+    pub labels: String,
+    #[serde(rename = "blockxref", default)]
+    pub xrefs: Vec<BlockXRef>,
+    #[serde(flatten)]
+    /// Other attributes on this fragment.
+    pub attrs: HashMap<String, String>,
 }
 
 impl XRefFragment {
@@ -295,13 +279,14 @@ impl XRefFragment {
         return XRefFragment {
             id,
             frag_type: None,
-            labels: Vec::new(),
+            labels: String::new(),
             xrefs: Vec::new(),
+            attrs: HashMap::new(),
         };
     }
 
     /// Adds the xrefs to the fragment and returns it.
-    pub fn with_xrefs(self, xrefs: Vec<XRef>) -> XRefFragment {
+    pub fn with_xrefs(self, xrefs: Vec<BlockXRef>) -> XRefFragment {
         return XRefFragment {
             id: self.id,
             frag_type: self.frag_type,
@@ -309,23 +294,56 @@ impl XRefFragment {
             xrefs: vec![self.xrefs, xrefs]
                 .into_iter()
                 .flatten()
-                .collect::<Vec<XRef>>(),
+                .collect::<Vec<BlockXRef>>(),
+            attrs: self.attrs,
         };
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FragmentContent {
+    #[serde(rename = "$text")]
+    Text(String),
+    Heading(Heading),
+    Block {
+        #[serde(rename = "$value", default)]
+        child: Vec<FragmentContent>,
+    },
+    BlockXRef(BlockXRef),
+    Para(Para),
+    Preformat {
+        #[serde(rename = "$value", default)]
+        child: Vec<FragmentContent>,
+    },
+    Image(Image),
+    Table(()), // TODO impl fragment table
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-fragment.html
 pub struct Fragment {
+    #[serde(rename = "@id")]
     /// ID of the fragment.
     pub id: String,
+    #[serde(rename = "@type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Template type for the fragment.
     pub frag_type: Option<String>,
+    #[serde(rename = "@labels")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Labels on this fragment.
-    pub labels: Vec<String>,
+    pub labels: Option<String>,
+    #[serde(rename = "$value", default)]
     /// Contents of the fragment.
-    pub content: Vec<Event<'static>>,
+    pub content: Vec<FragmentContent>,
+    // #[serde(flatten)]
+    // /// Other attributes.
+    // pub attrs: HashMap<String, String>,
+
+    // TODO ^ wait till $value and flatten can be used together ^
+    // https://github.com/tafia/quick-xml/issues/326
 }
 
 impl Fragment {
@@ -334,66 +352,79 @@ impl Fragment {
         return Fragment {
             id,
             frag_type: None,
-            labels: Vec::new(),
-            content: Vec::new(),
+            labels: None,
+            content: vec![],
+            // attrs: HashMap::new(),
         };
     }
 
     /// Adds the content to the fragment and returns it.
-    pub fn with_content(self, content: Vec<Event<'static>>) -> Fragment {
-        return Fragment {
+    pub fn with_content(mut self, content: Vec<FragmentContent>) -> Fragment {
+        // pub fn with_content(mut self, content: Vec<String>) -> Fragment {
+        self.content.extend(content);
+        Fragment {
             id: self.id,
             frag_type: self.frag_type,
             labels: self.labels,
-            content: vec![self.content, content]
-                .into_iter()
-                .flatten()
-                .collect::<Vec<Event<'static>>>(),
-        };
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Fragments {
-    Normal(Fragment),
-    Properties(PropertiesFragment),
-    XRef(XRefFragment),
-    Media(()),
-}
-
-impl Fragments {
-    pub fn id(&self) -> &str {
-        match self {
-            Fragments::Normal(frag) => &frag.id,
-            Fragments::Properties(frag) => &frag.id,
-            Fragments::XRef(frag) => &frag.id,
-            Fragments::Media(_frag) => todo!("Implement media frag"),
+            content: self.content,
+            // attrs: self.attrs,
         }
     }
 }
 
 // Section
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub enum SectionContent {
+    #[serde(rename = "fragment")]
+    Fragment(Fragment),
+    #[serde(rename = "properties-fragment")]
+    PropertiesFragment(PropertiesFragment),
+    #[serde(rename = "xref-fragment")]
+    XRefFragment(XRefFragment),
+    #[serde(rename = "media-fragment")]
+    Media(()),
+    #[serde(rename = "title")]
+    Title {
+        #[serde(rename = "$text", default)]
+        text: String,
+    },
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML Section.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-section.html
 pub struct Section {
+    #[serde(rename = "@id")]
     /// ID of the section.
     pub id: String,
+    #[serde(rename = "@title")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Title of the section in the UI.
     pub title: Option<String>,
+    #[serde(rename = "title")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Title of the content.
     pub content_title: Option<String>,
+    #[serde(rename = "@edit")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether fragments in this section can be edited in the UI.
-    pub edit: bool,
+    pub edit: Option<bool>,
+    #[serde(rename = "@lock")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether the structure of this section can be modified.
-    pub lock: bool,
+    pub lock: Option<bool>,
+    #[serde(rename = "@overwrite")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether the existing section/fragments are to be overwritten by these during upload.
-    pub overwrite: bool,
+    pub overwrite: Option<bool>,
+    #[serde(rename = "@fragmenttype")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Fragment types this section is allowed to contain.
-    pub fragment_types: Vec<String>,
+    pub fragment_types: Option<String>,
+    #[serde(rename = "$value", default)]
     /// Fragments in this section.
-    pub fragments: IndexMap<String, Fragments>,
+    pub content: Vec<SectionContent>,
 }
 
 impl Section {
@@ -403,107 +434,166 @@ impl Section {
             id,
             title: None,
             content_title: None,
-            edit: true,
-            lock: false,
-            overwrite: true,
-            fragment_types: Vec::new(),
-            fragments: IndexMap::new(),
-        };
-    }
-
-    /// Adds the given fragments to this section and returns it.
-    pub fn with_fragments(self, fragments: Vec<Fragments>) -> Section {
-        let mut all_frags = IndexMap::from(self.fragments);
-        for frag in fragments {
-            all_frags.insert(frag.id().to_string(), frag);
-        }
-        return Section {
-            id: self.id,
-            title: self.title,
-            content_title: self.content_title,
-            edit: self.edit,
-            lock: self.lock,
-            overwrite: self.overwrite,
-            fragment_types: self.fragment_types,
-            fragments: all_frags,
+            edit: Some(true),
+            lock: Some(false),
+            overwrite: Some(true),
+            fragment_types: None,
+            content: Vec::new(),
         };
     }
 }
 
 // Document
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// Describes the publication.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-publication.html
 pub struct Publication {
+    // #[serde(rename = "@id")]
     /// Publication ID.
     pub id: String,
+    #[serde(rename = "@type")]
     /// Publication type.
     pub pub_type: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+/// The <description> element is used to provide a short text-only description.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-description.html
+pub struct Description {
+    #[serde(rename = "$value")]
+    pub value: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// Metadata about this URI.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-uri.html
 pub struct URIDescriptor {
+    // Attributes
+    #[serde(rename = "@docid")]
     /// Docid of this document.
     pub docid: Option<String>,
+    #[serde(rename = "@documenttype")]
     /// Type of the document.
     pub doc_type: Option<String>,
-    /// Whether the URL is to the PageSeeder UI or is virtual.
-    pub source: Option<String>,
+    #[serde(rename = "@title")]
     /// Title for the document.
     pub title: Option<String>,
-    /// The URL type of the document.
-    pub url_type: Option<String>,
+    #[serde(rename = "@folder")]
+    /// If true, this is a folder.
+    pub folder: Option<bool>,
+
+    // Elements
+    /// Description of the document.
+    pub description: Option<Description>,
+    /// Labels on the document.
+    pub labels: Option<Labels>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 /// Wrapper for metadata about the document.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-documentinfo.html
 pub struct DocumentInfo {
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// URI descriptor.
     pub uri: Option<URIDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Publication descriptor.
     pub publication: Option<Publication>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-/// Note on a document.
+// TODO change this to vec of strings with custom deserializer.
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+/// A comma-separated list of label values for a document, note or fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-labels.html
+pub struct Labels {
+    #[serde(rename = "$value")]
+    pub value: String,
+}
+
+/// Previous document content if different from current (used when doing a compare).
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-content.html
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Content {
+    #[serde(rename = "$value")]
+    pub value: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+/// The note on the last notification of the fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-note.html
 pub struct Note {
+    // #[serde(rename = "@id")]
     pub id: Option<String>,
+    #[serde(rename = "@title")]
     /// Title of the note.
     pub title: Option<String>,
+    #[serde(rename = "@modified")]
     /// Date and time this note was modified.
     pub modified: String,
     /// Labels on this note.
-    pub labels: Vec<String>,
+    pub labels: Labels,
     /// Content in this note.
-    pub content: String,
+    pub content: Content,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-/// Metadata relating to a fragment.
-/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-locator.html
-pub struct FragmentLocator {
-    /// ID of the fragment.
-    pub fragment_id: String,
-    /// Notes on this fragment.
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+/// The notes on the last notification of the fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-notes.html
+pub struct Notes {
     pub notes: Vec<Note>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+/// Metadata relating to a fragment.
+/// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-locator.html
+pub struct Locator {
+    #[serde(rename = "fragment")]
+    /// ID of the fragment.
+    pub fragment_id: Option<String>,
+    /// Notes on this fragment.
+    pub notes: Option<Notes>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct FragmentInfo {
+    pub value: Vec<Locator>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DocumentLevel {
+    Metadata,
+    Portable,
+    Processed,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "document")]
 /// A PSML document.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-document.html
 pub struct Document {
+    #[serde(rename = "documentinfo")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Metadata about the document.
-    pub doc_info: DocumentInfo,
+    pub doc_info: Option<DocumentInfo>,
+    #[serde(rename = "fragmentinfo", default)]
     /// Fragment metadata
-    pub frag_info: Vec<FragmentLocator>,
+    pub frag_info: Vec<Locator>,
+    #[serde(rename = "section")]
     /// Sections in the document.
-    pub sections: IndexMap<String, Section>,
-    /// Index of the ToC relative to sections in this document.
-    /// 0 means before all sections.
-    pub toc_index: Option<usize>,
+    pub sections: Vec<Section>,
+    #[serde(rename = "@type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_type: Option<String>,
+    #[serde(rename = "@edit")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edit: Option<bool>,
+    #[serde(rename = "@level")]
+    pub level: DocumentLevel,
+    #[serde(rename = "@lockstructure")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lockstructure: Option<bool>,
 }
+
+// TODO impl toc index
