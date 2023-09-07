@@ -25,6 +25,12 @@ impl Service {
     }
 }
 
+impl Into<String> for Service {
+    fn into(self) -> String {
+        self.url_path()
+    }
+}
+
 pub trait URLSerializable {
     fn for_url(&self) -> &str;
 }
@@ -69,14 +75,14 @@ impl<'de> Deserialize<'de> for PSGroupAccess {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct PSGroup {
+pub struct Group {
     pub id: u32,
     pub name: String,
     pub owner: String,
     pub description: String,
     pub access: PSGroupAccess,
 }
-impl PSGroup {
+impl Group {
     pub fn short_name(&self) -> &str {
         return self
             .name
@@ -85,8 +91,27 @@ impl PSGroup {
             .1;
     }
 }
-impl URLSerializable for PSGroup {
+impl URLSerializable for Group {
     fn for_url(&self) -> &str {
         return &self.name;
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThreadProcessing {
+    current: u64,
+    total: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThreadPackaging {
+    current: u64,
+    total: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Thread {
+    status: String,
+    processing: Option<ThreadProcessing>,
+    packaging: Option<ThreadPackaging>,
 }
