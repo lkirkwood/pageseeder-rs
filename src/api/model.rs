@@ -1,18 +1,27 @@
 use serde::{de::Visitor, Deserialize};
 
-pub enum ServicePath {
-    GetGroup,
+pub enum Service {
+    GetGroup {
+        /// Group to get.
+        group: String,
+    },
+    UriExport {
+        /// Member to export as.
+        member: String,
+        /// URI to export.
+        uri: String,
+    },
 }
 
-impl ServicePath {
-    /// Returns a string that can be used with format! to return the uri slug
-    /// for this service.
-    /// e.g. GetGroup => "/ps/service/groups/{}"
+impl Service {
+    /// Returns the url path for this service.
+    /// e.g. GetGroup => /ps/service/groups/{group}
     pub fn url_path(&self) -> String {
         let path = match self {
-            Self::GetGroup => "groups/{}",
+            Self::GetGroup { group } => format!("groups/{group}"),
+            Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
         };
-        return format!("/ps/service/{}", path);
+        format!("/ps/service/{path}")
     }
 }
 
