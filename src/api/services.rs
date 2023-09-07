@@ -4,7 +4,10 @@ use serde::de::DeserializeOwned;
 
 use crate::error::{PSError, PSResult};
 
-use super::{model::PSGroup, PSServer};
+use super::{
+    model::{PSGroup, Service},
+    PSServer,
+};
 
 impl PSServer {
     /// Returns a type from the xml content of a response.
@@ -30,8 +33,16 @@ impl PSServer {
     /// Gets a group from the server.
     pub async fn get_group(&mut self, name: &str) -> PSResult<PSGroup> {
         let resp = self
-            .checked_get(&format!("ps/service/groups/{}", name), None, None)
+            .checked_get(
+                &Service::GetGroup {
+                    group: name.to_string(),
+                }
+                .url_path(),
+                None,
+                None,
+            )
             .await?;
+
         if !(200..300).contains(&resp.status().as_u16()) {
             return Err(PSError::ServerError {
                 msg: format!(
