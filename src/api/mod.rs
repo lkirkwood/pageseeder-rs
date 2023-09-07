@@ -34,8 +34,8 @@ impl PSServer {
     }
 
     /// Returns the uri slug appended to the PS url.
-    fn format_url(&self, uri_slug: &str) -> String {
-        format!("{}/{}", self.url, uri_slug.trim_start_matches('/'))
+    fn format_url(&self, uri: &str) -> String {
+        format!("{}/{}", self.url, uri.trim_start_matches('/'))
     }
 
     // Unchecked
@@ -43,11 +43,11 @@ impl PSServer {
     /// Makes a get request to the server at the specified uri slug.
     async fn get(
         &self,
-        uri_slug: &str,
+        uri: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
-        let mut req = self.client.get(self.format_url(uri_slug));
+        let mut req = self.client.get(self.format_url(uri));
         if params.is_some() {
             req = req.query(params.unwrap());
         }
@@ -57,7 +57,7 @@ impl PSServer {
         return match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to get {}: {:?}", uri_slug, err),
+                msg: format!("Failed to get {}: {:?}", uri, err),
             }),
         };
     }
