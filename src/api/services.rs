@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use crate::error::{PSError, PSResult};
 
 use super::{
-    model::{PSGroup, Service},
+    model::{Group, Service, Thread},
     PSServer,
 };
 
@@ -31,7 +31,7 @@ impl PSServer {
     }
 
     /// Gets a group from the server.
-    pub async fn get_group(&mut self, name: &str) -> PSResult<PSGroup> {
+    pub async fn get_group(&mut self, name: &str) -> PSResult<Group> {
         let resp = self
             .checked_get(
                 &Service::GetGroup {
@@ -48,6 +48,25 @@ impl PSServer {
                 msg: format!(
                     "Get group {} failed: {}",
                     name,
+                    resp.text()
+                        .await
+                        .unwrap_or("failed to get error from response".to_string())
+                ),
+            });
+        }
+        return self.xml_from_response(resp).await;
+    }
+
+    /// Returns the pageseeder thread that is exporting the URI(s).
+    pub async fn uri_export(&mut self, member: String, uri: String) -> PSResult<Thread> {
+        let resp = self
+            .checked_get(&Service::UriExport { member, uri }.url_path(), None, None)
+            .await?;
+
+        if !(200..300).contains(&resp.status().as_u16()) {
+            return Err(PSError::ServerError {
+                msg: format!(
+                    "Uri Export failed: {}",
                     resp.text()
                         .await
                         .unwrap_or("failed to get error from response".to_string())
