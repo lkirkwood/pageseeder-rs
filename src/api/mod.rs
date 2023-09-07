@@ -9,14 +9,11 @@ use serde::Serialize;
 
 use crate::error::{PSError, PSResult};
 
-use self::model::HttpScheme;
 use self::oauth::PSToken;
 
 /// A struct for making asynchronous calls to a PageSeeder server.
 pub struct PSServer {
-    pub hostname: String,
-    pub port: usize,
-    pub scheme: HttpScheme,
+    pub url: String,
     credentials: oauth::PSCredentials,
     client: Client,
     token: Option<PSToken>,
@@ -26,16 +23,9 @@ pub struct PSServer {
 impl PSServer {
     /// Instantiates a new PSServer.
     /// Defaults to HTTPS and port 443.
-    pub fn new(
-        hostname: String,
-        credentials: oauth::PSCredentials,
-        scheme: Option<HttpScheme>,
-        port: Option<usize>,
-    ) -> Self {
+    pub fn new(url: String, credentials: oauth::PSCredentials) -> Self {
         return PSServer {
-            hostname,
-            port: port.unwrap_or(443),
-            scheme: scheme.unwrap_or(HttpScheme::Https),
+            url,
             credentials,
             client: Client::new(),
             token: None,
@@ -45,13 +35,7 @@ impl PSServer {
 
     /// Returns the uri slug appended to the PS url.
     fn format_url(&self, uri_slug: &str) -> String {
-        format!(
-            "{}://{}:{}/{}",
-            self.scheme,
-            self.hostname,
-            self.port,
-            uri_slug.trim_start_matches('/')
-        )
+        format!("{}/{}", self.url, uri_slug.trim_start_matches('/'))
     }
 
     // Unchecked

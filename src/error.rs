@@ -1,6 +1,4 @@
-use std::{error::Error, fmt::Display, future::Future};
-
-use reqwest::{Error as ReqwError, Response};
+use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
 pub enum PSError {

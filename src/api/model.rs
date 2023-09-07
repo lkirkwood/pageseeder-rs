@@ -1,28 +1,4 @@
-use std::fmt::Display;
-
 use serde::{de::Visitor, Deserialize};
-
-use crate::error::PSError;
-
-pub enum HttpScheme {
-    Http,
-    Https,
-}
-
-impl HttpScheme {
-    fn to_str(&self) -> &'static str {
-        match self {
-            Self::Http => "http",
-            Self::Https => "https",
-        }
-    }
-}
-
-impl Display for HttpScheme {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_str())
-    }
-}
 
 pub enum ServicePath {
     GetGroup,

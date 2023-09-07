@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Duration, Utc};
-use reqwest::header::{HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 pub enum PSCredentials {
