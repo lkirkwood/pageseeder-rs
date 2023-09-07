@@ -33,14 +33,7 @@ impl PSServer {
     /// Gets a group from the server.
     pub async fn get_group(&mut self, name: &str) -> PSResult<Group> {
         let resp = self
-            .checked_get(
-                &Service::GetGroup {
-                    group: name.to_string(),
-                }
-                .url_path(),
-                None,
-                None,
-            )
+            .checked_get(&Service::GetGroup { group: name }.url_path(), None, None)
             .await?;
 
         if !(200..300).contains(&resp.status().as_u16()) {
@@ -58,7 +51,7 @@ impl PSServer {
     }
 
     /// Returns the pageseeder thread that is exporting the URI(s).
-    pub async fn uri_export(&mut self, member: String, uri: String) -> PSResult<Thread> {
+    pub async fn uri_export(&mut self, member: &str, uri: &str) -> PSResult<Thread> {
         let resp = self
             .checked_get(&Service::UriExport { member, uri }.url_path(), None, None)
             .await?;

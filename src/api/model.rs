@@ -1,19 +1,19 @@
 use serde::{de::Visitor, Deserialize};
 
-pub enum Service {
+pub enum Service<'a> {
     GetGroup {
         /// Group to get.
-        group: String,
+        group: &'a str,
     },
     UriExport {
         /// Member to export as.
-        member: String,
+        member: &'a str,
         /// URI to export.
-        uri: String,
+        uri: &'a str,
     },
 }
 
-impl Service {
+impl Service<'_> {
     /// Returns the url path for this service.
     /// e.g. GetGroup => /ps/service/groups/{group}
     pub fn url_path(&self) -> String {
@@ -25,7 +25,7 @@ impl Service {
     }
 }
 
-impl Into<String> for Service {
+impl Into<String> for Service<'_> {
     fn into(self) -> String {
         self.url_path()
     }

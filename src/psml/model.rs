@@ -74,7 +74,7 @@ pub struct XRef {
 impl XRef {
     /// Returns a default xref to the given uriid.
     pub fn uriid(uriid: String) -> XRef {
-        return XRef {
+        XRef {
             uriid: None,
             docid: None,
             href: Some(uriid),
@@ -88,12 +88,12 @@ impl XRef {
             reversetitle: None,
             title: None,
             xref_type: None,
-        };
+        }
     }
 
     /// Returns a default xref to the given docid.
     pub fn docid(docid: String) -> XRef {
-        return XRef {
+        XRef {
             uriid: None,
             docid: Some(docid),
             href: None,
@@ -107,12 +107,12 @@ impl XRef {
             reversetitle: None,
             title: None,
             xref_type: None,
-        };
+        }
     }
 
     /// Returns a default xref to the given href.
     pub fn href(href: String) -> XRef {
-        return XRef {
+        XRef {
             uriid: None,
             docid: None,
             href: Some(href),
@@ -126,12 +126,12 @@ impl XRef {
             reversetitle: None,
             title: None,
             xref_type: None,
-        };
+        }
     }
 
     /// Adds the specified content to the xref and returns it.
     pub fn with_content(self, content: String) -> XRef {
-        return XRef {
+        XRef {
             uriid: self.uriid,
             docid: self.docid,
             href: self.href,
@@ -145,7 +145,7 @@ impl XRef {
             reversetitle: self.reversetitle,
             title: self.title,
             xref_type: self.xref_type,
-        };
+        }
     }
 }
 
@@ -220,13 +220,13 @@ pub struct PropertiesFragment {
 impl PropertiesFragment {
     /// Creates a new empty fragment with the given id.
     pub fn new(id: String) -> PropertiesFragment {
-        return PropertiesFragment {
+        PropertiesFragment {
             id,
             frag_type: None,
             labels: None,
             properties: vec![],
             attrs: HashMap::new(),
-        };
+        }
     }
 
     /// Adds the properties to the fragment and returns it.
@@ -276,18 +276,18 @@ pub struct XRefFragment {
 impl XRefFragment {
     /// Creates a new empty fragment with the given id.
     pub fn new(id: String) -> XRefFragment {
-        return XRefFragment {
+        XRefFragment {
             id,
             frag_type: None,
             labels: String::new(),
             xrefs: Vec::new(),
             attrs: HashMap::new(),
-        };
+        }
     }
 
     /// Adds the xrefs to the fragment and returns it.
     pub fn with_xrefs(self, xrefs: Vec<BlockXRef>) -> XRefFragment {
-        return XRefFragment {
+        XRefFragment {
             id: self.id,
             frag_type: self.frag_type,
             labels: self.labels,
@@ -296,7 +296,7 @@ impl XRefFragment {
                 .flatten()
                 .collect::<Vec<BlockXRef>>(),
             attrs: self.attrs,
-        };
+        }
     }
 }
 
@@ -349,13 +349,13 @@ pub struct Fragment {
 impl Fragment {
     /// Creates a new empty fragment with the given id.
     pub fn new(id: String) -> Fragment {
-        return Fragment {
+        Fragment {
             id,
             frag_type: None,
             labels: None,
             content: vec![],
             // attrs: HashMap::new(),
-        };
+        }
     }
 
     /// Adds the content to the fragment and returns it.
@@ -430,7 +430,7 @@ pub struct Section {
 impl Section {
     /// Creates a new empty fragment with the given id.
     pub fn new(id: String) -> Section {
-        return Section {
+        Section {
             id,
             title: None,
             content_title: None,
@@ -439,7 +439,7 @@ impl Section {
             overwrite: Some(true),
             fragment_types: None,
             content: Vec::new(),
-        };
+        }
     }
 }
 
