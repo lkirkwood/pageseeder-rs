@@ -1,8 +1,13 @@
+use std::collections::HashMap;
+
 use quick_xml::de;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 
-use crate::error::{PSError, PSResult};
+use crate::{
+    api::model::SearchResponse,
+    error::{PSError, PSResult},
+};
 
 use super::{
     model::{Group, SearchResultPage, Service, Thread},
@@ -82,17 +87,45 @@ impl PSServer {
     pub async fn group_search(
         &mut self,
         group: &str,
-        params: Vec<(&str, &str)>,
+        mut params: HashMap<&str, &str>,
     ) -> PSResult<Vec<SearchResultPage>> {
-        let resp = self
-            .checked_get(
-                &Service::GroupSearch { group }.url_path(),
-                Some(params),
-                None,
-            )
-            .await?;
+        let mut param_vec: Vec<(&str, &str)> = params.iter().map(|t| (*t.0, *t.1)).collect();
 
+        let uri_slug = Service::GroupSearch { group }.url_path();
+        let resp = self.checked_get(&uri_slug, Some(param_vec), None);
+
+        let page = params.get("page"); // check if page number specified
+
+        let resp = resp.await?;
         handle_http!("group search", resp);
-        return self.xml_from_response(resp).await;
+        let results = self
+            .xml_from_response::<SearchResponse>(resp)
+            .await?
+            .results;
+
+        let mut pages = vec![];
+        if page.is_none() {
+            for page in 1..=results.total_pages {
+                let page = page.to_string();
+                let mut params = params.clone();
+
+                params.insert("page", &page);
+                let resp = self
+                    .checked_get(
+                        &uri_slug,
+                        Some(params.iter().map(|t| (*t.0, *t.1)).collect()),
+                        None,
+                    )
+                    .await?;
+                pages.push(
+                    self.xml_from_response::<SearchResponse>(resp)
+                        .await?
+                        .results,
+                );
+            }
+        }
+
+        pages.insert(0, results);
+        Ok(pages)
     }
 }
