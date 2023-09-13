@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use quick_xml::de;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
