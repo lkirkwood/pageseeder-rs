@@ -44,7 +44,7 @@ impl PSServer {
     async fn get(
         &self,
         uri: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<&Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri));
@@ -195,7 +195,7 @@ impl PSServer {
     pub async fn checked_get(
         &mut self,
         uri_slug: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<&Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
