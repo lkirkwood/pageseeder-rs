@@ -1,6 +1,8 @@
 pub mod model;
 pub mod oauth;
 pub mod services;
+#[cfg(test)]
+mod tests;
 
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
