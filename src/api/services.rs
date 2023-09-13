@@ -79,6 +79,22 @@ impl PSServer {
         handle_http!("uri export", resp);
         return self.xml_from_response(resp).await;
     }
+
+    /// Searches a group.
+    pub async fn group_search(
+        &mut self,
+        group: &str,
+        params: &Vec<(&str, &str)>,
+    ) -> PSResult<Vec<SearchResultPage>> {
+        let resp = self
+            .checked_get(
+                &Service::GroupSearch { group }.url_path(),
+                Some(params),
+                None,
+            )
+            .await?;
+
+        handle_http!("group search", resp);
         return self.xml_from_response(resp).await;
     }
 }
