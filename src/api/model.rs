@@ -11,6 +11,10 @@ pub enum Service<'a> {
         /// URI to export.
         uri: &'a str,
     },
+    GroupSearch {
+        /// Group to search.
+        group: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -20,6 +24,7 @@ impl Service<'_> {
         let path = match self {
             Self::GetGroup { group } => format!("groups/{group}"),
             Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
+            Self::GroupSearch { group } => format!("groups/{group}/search"),
         };
         format!("/ps/service/{path}")
     }
