@@ -58,6 +58,7 @@ impl PSServer {
         member: &str,
         uri: &str,
         params: &Vec<(&str, &str)>,
+        // TODO find better solution for parameters (struct impl Default?)
     ) -> PSResult<Thread> {
         let resp = self
             .checked_get(
