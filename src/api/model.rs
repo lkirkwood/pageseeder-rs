@@ -92,56 +92,65 @@ impl Group {
 #[derive(Debug, Deserialize)]
 #[serde(rename = "processing")]
 pub struct ThreadProcessing {
-    current: u64,
-    total: u64,
+    #[serde(rename = "@current")]
+    pub current: u64,
+    #[serde(rename = "@total")]
+    pub total: u64,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "packaging")]
 pub struct ThreadPackaging {
-    current: u64,
-    total: u64,
+    #[serde(rename = "@current")]
+    pub current: u64,
+    #[serde(rename = "@total")]
+    pub total: u64,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "thread")]
 pub struct Thread {
-    status: String,
-    processing: Option<ThreadProcessing>,
-    packaging: Option<ThreadPackaging>,
+    #[serde(rename = "@status")]
+    pub status: String,
+    pub processing: Option<ThreadProcessing>,
+    pub packaging: Option<ThreadPackaging>,
 }
 
 // Search
 
 #[derive(Debug, Deserialize)]
-#[serde(rename = "field")]
 pub struct SearchResultField {
-    name: String,
+    #[serde(rename = "@name")]
+    pub name: String,
     #[serde(rename = "$text")]
-    value: String,
+    pub value: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename = "result")]
 pub struct SearchResult {
-    #[serde(flatten)]
-    fields: Vec<SearchResultField>,
+    #[serde(rename = "field")]
+    pub fields: Vec<SearchResultField>,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename = "results")]
 pub struct SearchResultPage {
-    page: u64,
-    #[serde(rename = "page-size")]
-    page_size: u64,
-    #[serde(rename = "total-pages")]
-    total_pages: u64,
-    #[serde(rename = "total-results")]
-    total_results: u64,
-    #[serde(rename = "first-result")]
-    first_result: u64,
-    #[serde(rename = "last-result")]
-    last_result: u64,
-    #[serde(flatten)]
-    results: Vec<SearchResult>,
+    #[serde(rename = "@page")]
+    pub page: u64,
+    #[serde(rename = "@page-size")]
+    pub page_size: u64,
+    #[serde(rename = "@total-pages")]
+    pub total_pages: u64,
+    #[serde(rename = "@total-results")]
+    pub total_results: u64,
+    #[serde(rename = "@first-result")]
+    pub first_result: u64,
+    #[serde(rename = "@last-result")]
+    pub last_result: u64,
+    #[serde(rename = "result")]
+    pub results: Vec<SearchResult>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchResponse {
+    pub results: SearchResultPage,
 }
