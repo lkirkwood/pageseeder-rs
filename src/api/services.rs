@@ -19,9 +19,10 @@ use super::{
 macro_rules! handle_http {
     ($op:expr, $resp:ident) => {
         if !(200..300).contains(&$resp.status().as_u16()) {
+            let op = $op;
             return Err(PSError::ServerError {
                 msg: format!(
-                    "$op failed: {}",
+                    "{op} failed: {}",
                     $resp
                         .text()
                         .await
