@@ -7,9 +7,27 @@ use serde::de::DeserializeOwned;
 use crate::error::{PSError, PSResult};
 
 use super::{
-    model::{Group, Service, Thread},
+    model::{Group, SearchResultPage, Service, Thread},
     PSServer,
 };
+
+/// Returns an error if $resp has an error-class http return code.
+/// $op is used in the error message.
+macro_rules! handle_http {
+    ($op:expr, $resp:ident) => {
+        if !(200..300).contains(&$resp.status().as_u16()) {
+            return Err(PSError::ServerError {
+                msg: format!(
+                    "$op failed: {}",
+                    $resp
+                        .text()
+                        .await
+                        .unwrap_or("failed to get error from response".to_string())
+                ),
+            });
+        }
+    };
+}
 
 impl PSServer {
     /// Returns a type from the xml content of a response.
@@ -38,17 +56,7 @@ impl PSServer {
             .checked_get(&Service::GetGroup { group: name }.url_path(), None, None)
             .await?;
 
-        if !(200..300).contains(&resp.status().as_u16()) {
-            return Err(PSError::ServerError {
-                msg: format!(
-                    "Get group {} failed: {}",
-                    name,
-                    resp.text()
-                        .await
-                        .unwrap_or("failed to get error from response".to_string())
-                ),
-            });
-        }
+        handle_http!("get group", resp);
         return self.xml_from_response(resp).await;
     }
 
@@ -68,16 +76,9 @@ impl PSServer {
             )
             .await?;
 
-        if !(200..300).contains(&resp.status().as_u16()) {
-            return Err(PSError::ServerError {
-                msg: format!(
-                    "Uri Export failed: {}",
-                    resp.text()
-                        .await
-                        .unwrap_or("failed to get error from response".to_string())
-                ),
-            });
-        }
+        handle_http!("uri export", resp);
+        return self.xml_from_response(resp).await;
+    }
         return self.xml_from_response(resp).await;
     }
 }
