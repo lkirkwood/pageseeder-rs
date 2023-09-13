@@ -36,10 +36,6 @@ impl Into<String> for Service<'_> {
     }
 }
 
-pub trait URLSerializable {
-    fn for_url(&self) -> &str;
-}
-
 // Group
 
 struct PSGroupAccessStrVisitor;
@@ -65,18 +61,11 @@ impl<'de> Visitor<'de> for PSGroupAccessStrVisitor {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PSGroupAccess {
     Public,
     Member,
-}
-impl<'de> Deserialize<'de> for PSGroupAccess {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        return deserializer.deserialize_str(PSGroupAccessStrVisitor);
-    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -87,6 +76,7 @@ pub struct Group {
     pub description: String,
     pub access: PSGroupAccess,
 }
+
 impl Group {
     pub fn short_name(&self) -> &str {
         return self
@@ -96,27 +86,62 @@ impl Group {
             .1;
     }
 }
-impl URLSerializable for Group {
-    fn for_url(&self) -> &str {
-        return &self.name;
-    }
-}
+
+// Export
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "processing")]
 pub struct ThreadProcessing {
     current: u64,
     total: u64,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "packaging")]
 pub struct ThreadPackaging {
     current: u64,
     total: u64,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "thread")]
 pub struct Thread {
     status: String,
     processing: Option<ThreadProcessing>,
     packaging: Option<ThreadPackaging>,
+}
+
+// Search
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "field")]
+pub struct SearchResultField {
+    name: String,
+    #[serde(rename = "$text")]
+    value: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "result")]
+pub struct SearchResult {
+    #[serde(flatten)]
+    fields: Vec<SearchResultField>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "results")]
+pub struct SearchResultPage {
+    page: u64,
+    #[serde(rename = "page-size")]
+    page_size: u64,
+    #[serde(rename = "total-pages")]
+    total_pages: u64,
+    #[serde(rename = "total-results")]
+    total_results: u64,
+    #[serde(rename = "first-result")]
+    first_result: u64,
+    #[serde(rename = "last-result")]
+    last_result: u64,
+    #[serde(flatten)]
+    results: Vec<SearchResult>,
 }
