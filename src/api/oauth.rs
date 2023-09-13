@@ -16,7 +16,7 @@ impl PSCredentials {
                 map.insert("grant_type", "client_credentials".to_string());
                 map.insert("client_id", id.clone());
                 map.insert("client_secret", secret.clone());
-                return map;
+                map
             }
         }
     }
@@ -31,10 +31,10 @@ pub struct PSToken {
 impl PSToken {
     /// Creates a PSToken that will expire in the given number of seconds.
     pub fn expires_in(token: String, seconds: i64) -> PSToken {
-        return PSToken {
+        PSToken {
             token,
             expiry: Utc::now() + Duration::seconds(seconds),
-        };
+        }
     }
 }
 

@@ -24,13 +24,13 @@ impl PSServer {
     /// Instantiates a new PSServer.
     /// Defaults to HTTPS and port 443.
     pub fn new(url: String, credentials: oauth::PSCredentials) -> Self {
-        return PSServer {
+        PSServer {
             url,
             credentials,
             client: Client::new(),
             token: None,
             token_header: None,
-        };
+        }
     }
 
     /// Returns the uri slug appended to the PS url.
@@ -54,12 +54,12 @@ impl PSServer {
         if headers.is_some() {
             req = req.headers(headers.unwrap())
         }
-        return match req.send().await {
+        match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
                 msg: format!("Failed to get {}: {:?}", uri, err),
             }),
-        };
+        }
     }
 
     /// Makes a post request to the server at the specified uri slug.
@@ -81,12 +81,12 @@ impl PSServer {
         if body.is_some() {
             req = req.body(body.unwrap());
         }
-        return match req.send().await {
+        match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
                 msg: format!("Failed to post {}: {:?}", uri_slug, err),
             }),
-        };
+        }
     }
 
     /// Makes a post request to the server at the specified uri slug.
@@ -108,12 +108,12 @@ impl PSServer {
         if form.is_some() {
             req = req.form(form.unwrap());
         }
-        return match req.send().await {
+        match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
                 msg: format!("Failed to post {}: {:?}", uri_slug, err),
             }),
-        };
+        }
     }
 
     // Token
@@ -164,10 +164,10 @@ impl PSServer {
             }
             Ok(tr) => tr,
         };
-        return Ok(PSToken::expires_in(
+        Ok(PSToken::expires_in(
             token_resp.access_token,
             token_resp.expires_in,
-        ));
+        ))
     }
 
     /// Gets a new access token and stores it only if the current one is invalid.
@@ -201,7 +201,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        return self.get(uri_slug, params, Some(new_headers)).await;
+        self.get(uri_slug, params, Some(new_headers)).await
     }
 
     async fn checked_post<T: Into<Body>>(
@@ -214,7 +214,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        return self.post(uri_slug, params, Some(new_headers), body).await;
+        self.post(uri_slug, params, Some(new_headers), body).await
     }
 
     async fn checked_post_form<F: Serialize + ?Sized>(
@@ -227,8 +227,8 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        return self
+        self
             .post_form(uri_slug, params, Some(new_headers), form)
-            .await;
+            .await
     }
 }

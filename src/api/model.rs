@@ -30,9 +30,9 @@ impl Service<'_> {
     }
 }
 
-impl Into<String> for Service<'_> {
-    fn into(self) -> String {
-        self.url_path()
+impl From<Service<'_>> for String {
+    fn from(val: Service<'_>) -> Self {
+        val.url_path()
     }
 }
 
@@ -82,7 +82,7 @@ impl Group {
         return self
             .name
             .rsplit_once('-')
-            .expect(&format!("Group name has no '-': {}", self.name))
+            .unwrap_or_else(|| panic!("Group name has no '-': {}", self.name))
             .1;
     }
 }
