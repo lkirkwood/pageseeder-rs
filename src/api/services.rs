@@ -40,11 +40,11 @@ impl PSServer {
         };
         match de::from_str(&text) {
             Err(err) => {
-                Err(PSError::ParseError {
+                return Err(PSError::ParseError {
                     msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
                 })
             }
-            Ok(obj) => Ok(obj),
+            Ok(obj) => return Ok(obj),
         }
     }
 
@@ -55,7 +55,7 @@ impl PSServer {
             .await?;
 
         handle_http!("get group", resp);
-        self.xml_from_response(resp).await
+        return self.xml_from_response(resp).await;
     }
 
     /// Returns the pageseeder thread that is exporting the URI(s).
@@ -63,7 +63,7 @@ impl PSServer {
         &mut self,
         member: &str,
         uri: &str,
-        params: &Vec<(&str, &str)>,
+        params: Vec<(&str, &str)>,
         // TODO find better solution for parameters (struct impl Default?)
     ) -> PSResult<Thread> {
         let resp = self
@@ -75,14 +75,14 @@ impl PSServer {
             .await?;
 
         handle_http!("uri export", resp);
-        self.xml_from_response(resp).await
+        return self.xml_from_response(resp).await;
     }
 
     /// Searches a group.
     pub async fn group_search(
         &mut self,
         group: &str,
-        params: &Vec<(&str, &str)>,
+        params: Vec<(&str, &str)>,
     ) -> PSResult<Vec<SearchResultPage>> {
         let resp = self
             .checked_get(
@@ -93,6 +93,6 @@ impl PSServer {
             .await?;
 
         handle_http!("group search", resp);
-        self.xml_from_response(resp).await
+        return self.xml_from_response(resp).await;
     }
 }

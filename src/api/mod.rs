@@ -44,16 +44,18 @@ impl PSServer {
     async fn get(
         &self,
         uri: &str,
-        params: Option<&Vec<(&str, &str)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri));
-        if params.is_some() {
-            req = req.query(params.unwrap());
+
+        if let Some(params) = params {
+            req = req.query(&params);
         }
-        if headers.is_some() {
-            req = req.headers(headers.unwrap())
+        if let Some(headers) = headers {
+            req = req.headers(headers)
         }
+
         match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
@@ -67,20 +69,22 @@ impl PSServer {
     async fn post<T: Into<Body>>(
         &self,
         uri_slug: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
     ) -> PSResult<Response> {
         let mut req = self.client.get(self.format_url(uri_slug));
-        if params.is_some() {
-            req = req.query(params.unwrap());
+
+        if let Some(params) = params {
+            req = req.query(&params);
         }
-        if headers.is_some() {
-            req = req.headers(headers.unwrap());
+        if let Some(headers) = headers {
+            req = req.headers(headers);
         }
-        if body.is_some() {
-            req = req.body(body.unwrap());
+        if let Some(body) = body {
+            req = req.body(body);
         }
+
         match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
@@ -195,7 +199,7 @@ impl PSServer {
     pub async fn checked_get(
         &mut self,
         uri_slug: &str,
-        params: Option<&Vec<(&str, &str)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
@@ -207,7 +211,7 @@ impl PSServer {
     async fn checked_post<T: Into<Body>>(
         &mut self,
         uri_slug: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
     ) -> PSResult<Response> {
@@ -227,8 +231,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self
-            .post_form(uri_slug, params, Some(new_headers), form)
+        self.post_form(uri_slug, params, Some(new_headers), form)
             .await
     }
 }
