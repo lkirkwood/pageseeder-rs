@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Duration, Utc};
+use reqwest::header::HeaderValue;
 use serde::Deserialize;
+
+use crate::error::{PSError, PSResult};
 
 pub enum PSCredentials {
     ClientCredentials { id: String, secret: String },
@@ -26,15 +29,26 @@ impl PSCredentials {
 pub struct PSToken {
     pub token: String,
     pub expiry: DateTime<Utc>,
+    pub header: HeaderValue,
 }
 
 impl PSToken {
     /// Creates a PSToken that will expire in the given number of seconds.
-    pub fn expires_in(token: String, seconds: i64) -> PSToken {
-        PSToken {
+    pub fn expires_in(token: String, seconds: i64) -> PSResult<PSToken> {
+        let header = match HeaderValue::from_str(&format!("Bearer {}", token)) {
+            Err(err) => {
+                return Err(PSError::TokenError {
+                    msg: format!("Invalid token {}", err),
+                })
+            }
+            Ok(header) => header,
+        };
+
+        Ok(PSToken {
             token,
             expiry: Utc::now() + Duration::seconds(seconds),
-        }
+            header,
+        })
     }
 }
 

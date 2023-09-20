@@ -55,9 +55,9 @@ impl PSServer {
     }
 
     /// Gets a group from the server.
-    pub async fn get_group(&mut self, name: &str) -> PSResult<Group> {
+    pub async fn get_group(&self, name: &str) -> PSResult<Group> {
         let resp = self
-            .checked_get(&Service::GetGroup { group: name }.url_path(), None, None)
+            .checked_get(Service::GetGroup { group: name }, None, None)
             .await?;
 
         handle_http!("get group", resp);
@@ -66,18 +66,14 @@ impl PSServer {
 
     /// Returns the pageseeder thread that is exporting the URI(s).
     pub async fn uri_export(
-        &mut self,
+        &self,
         member: &str,
         uri: &str,
         params: Vec<(&str, &str)>,
         // TODO find better solution for parameters (struct impl Default?)
     ) -> PSResult<Thread> {
         let resp = self
-            .checked_get(
-                &Service::UriExport { member, uri }.url_path(),
-                Some(params),
-                None,
-            )
+            .checked_get(Service::UriExport { member, uri }, Some(params), None)
             .await?;
 
         handle_http!("uri export", resp);
@@ -85,17 +81,17 @@ impl PSServer {
     }
 
     /// Searches a group.
+    /// Fetches all pages for a search if no page number is specified in params.
+    /// This may result in multiple requests.
     pub async fn group_search(
-        &mut self,
+        &self,
         group: &str,
-        mut params: HashMap<&str, &str>,
+        params: HashMap<&str, &str>,
     ) -> PSResult<Vec<SearchResultPage>> {
-        let mut param_vec: Vec<(&str, &str)> = params.iter().map(|t| (*t.0, *t.1)).collect();
+        let param_vec: Vec<(&str, &str)> = params.iter().map(|t| (*t.0, *t.1)).collect();
 
-        let uri_slug = Service::GroupSearch { group }.url_path();
-        let resp = self.checked_get(&uri_slug, Some(param_vec), None);
-
-        let page = params.get("page"); // check if page number specified
+        let service = Service::GroupSearch { group };
+        let resp = self.checked_get(service.clone(), Some(param_vec), None);
 
         let resp = resp.await?;
         handle_http!("group search", resp);
@@ -105,7 +101,8 @@ impl PSServer {
             .results;
 
         let mut pages = vec![];
-        if page.is_none() {
+        // Fetches all pages if pagenum not specified.
+        if !params.contains_key("page") {
             for page in 1..=results.total_pages {
                 let page = page.to_string();
                 let mut params = params.clone();
@@ -113,7 +110,7 @@ impl PSServer {
                 params.insert("page", &page);
                 let resp = self
                     .checked_get(
-                        &uri_slug,
+                        service.clone(),
                         Some(params.iter().map(|t| (*t.0, *t.1)).collect()),
                         None,
                     )

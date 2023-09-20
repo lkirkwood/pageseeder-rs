@@ -11,7 +11,7 @@ fn credentials() -> PSCredentials {
 
 #[tokio::test]
 async fn test_group_search() {
-    let mut server = PSServer::new(
+    let server = PSServer::new(
         env::var("PS_TEST_URL").expect("Set environment variable PS_TEST_URL"),
         credentials(),
     );
