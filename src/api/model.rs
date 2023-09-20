@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::Deserialize;
 
 #[derive(Debug, Clone)]
@@ -79,6 +81,42 @@ impl Group {
 // Export
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ThreadStatus {
+    Initialised,
+    InProgress,
+    Error,
+    Warning,
+    Cancelled,
+    Failed,
+    Complete,
+}
+
+impl ThreadStatus {
+    /// Returns true if thread is still running.
+    pub fn running(&self) -> bool {
+        match self {
+            Self::Initialised | Self::InProgress => true,
+            _ => false,
+        }
+    }
+}
+
+impl Display for ThreadStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Initialised => write!(f, "initialised"),
+            Self::InProgress => write!(f, "inprogress"),
+            Self::Error => write!(f, "error"),
+            Self::Warning => write!(f, "warning"),
+            Self::Cancelled => write!(f, "cancelled"),
+            Self::Failed => write!(f, "failed"),
+            Self::Complete => write!(f, "complete"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename = "zip")]
 pub struct ThreadZip {
     #[serde(rename = "$text")]
@@ -122,7 +160,7 @@ pub struct Thread {
     #[serde(rename = "@groupid")]
     pub groupid: String,
     #[serde(rename = "@status")]
-    pub status: String,
+    pub status: ThreadStatus,
     pub processing: Option<ThreadProcessing>,
     pub packaging: Option<ThreadPackaging>,
     pub zip: Option<ThreadZip>,
