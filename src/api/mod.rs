@@ -4,6 +4,8 @@ pub mod services;
 #[cfg(test)]
 mod tests;
 
+use std::sync::Mutex;
+
 use chrono::Utc;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Body, Client, Response};
@@ -18,8 +20,7 @@ pub struct PSServer {
     pub url: String,
     credentials: oauth::PSCredentials,
     client: Client,
-    token: Option<PSToken>,
-    token_header: Option<HeaderValue>,
+    token: Mutex<Option<PSToken>>,
 }
 
 impl PSServer {
@@ -30,8 +31,7 @@ impl PSServer {
             url,
             credentials,
             client: Client::new(),
-            token: None,
-            token_header: None,
+            token: Mutex::new(None),
         }
     }
 
@@ -43,13 +43,14 @@ impl PSServer {
     // Unchecked
 
     /// Makes a get request to the server at the specified uri slug.
-    async fn get(
+    async fn get<'a, U: Into<String>>(
         &self,
-        uri: &str,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
-        let mut req = self.client.get(self.format_url(uri));
+        let uri = uri.into();
+        let mut req = self.client.get(self.format_url(&uri));
 
         if let Some(params) = params {
             req = req.query(&params);
@@ -126,9 +127,10 @@ impl PSServer {
 
     /// Returns true if the currently stored token is valid.
     fn valid_token(&self) -> bool {
-        match &self.token {
-            None => false,
-            Some(token) => token.expiry.gt(&Utc::now()),
+        if let Some(token) = (*self.token.lock().unwrap()).as_ref() {
+            token.expiry.gt(&Utc::now())
+        } else {
+            false
         }
     }
 
@@ -170,48 +172,36 @@ impl PSServer {
             }
             Ok(tr) => tr,
         };
-        Ok(PSToken::expires_in(
-            token_resp.access_token,
-            token_resp.expires_in,
-        ))
+        PSToken::expires_in(token_resp.access_token, token_resp.expires_in)
     }
 
     /// Gets a new access token and stores it only if the current one is invalid.
-    async fn update_token(&mut self) -> PSResult<&HeaderValue> {
-        if !self.valid_token() {
-            self.token = Some(self.get_token().await?);
-            let header =
-                HeaderValue::from_str(&format!("Bearer {}", self.token.as_ref().unwrap().token));
-            match header {
-                Err(err) => {
-                    return Err(PSError::TokenError {
-                        msg: format!("Invalid token {}", err),
-                    })
-                }
-                Ok(header) => {
-                    self.token_header = Some(header);
-                }
-            }
-        }
-        return Ok(self.token_header.as_ref().unwrap());
+    async fn update_token(&self) -> PSResult<HeaderValue> {
+        let header = if !self.valid_token() {
+            let new_token = self.get_token().await?;
+            self.token.lock().unwrap().insert(new_token).header.clone()
+        } else {
+            self.token.lock().unwrap().as_ref().unwrap().header.clone()
+        };
+        return Ok(header);
     }
 
     // Checked
 
-    pub async fn checked_get(
-        &mut self,
-        uri_slug: &str,
+    pub async fn checked_get<'a, U: Into<String>>(
+        &self,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self.get(uri_slug, params, Some(new_headers)).await
+        self.get(uri, params, Some(new_headers)).await
     }
 
     async fn checked_post<T: Into<Body>>(
-        &mut self,
+        &self,
         uri_slug: &str,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
@@ -224,7 +214,7 @@ impl PSServer {
     }
 
     async fn checked_post_form<F: Serialize + ?Sized>(
-        &mut self,
+        &self,
         uri_slug: &str,
         params: Option<&Vec<(String, String)>>,
         headers: Option<HeaderMap<HeaderValue>>,
