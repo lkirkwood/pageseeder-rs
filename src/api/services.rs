@@ -126,4 +126,14 @@ impl PSServer {
         pages.insert(0, results);
         Ok(pages)
     }
+
+    /// Gets the progress of a pageseeder thread.
+    pub async fn thread_progress<'a>(&self, thread_id: &'a str) -> PSResult<Thread> {
+        let resp = self
+            .checked_get(Service::ThreadProgress { id: thread_id }, None, None)
+            .await?;
+
+        handle_http!("get thread progress", resp);
+        self.xml_from_response(resp).await
+    }
 }

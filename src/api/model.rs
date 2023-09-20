@@ -1,5 +1,6 @@
-use serde::{de::Visitor, Deserialize};
+use serde::Deserialize;
 
+#[derive(Debug, Clone)]
 pub enum Service<'a> {
     GetGroup {
         /// Group to get.
@@ -15,6 +16,10 @@ pub enum Service<'a> {
         /// Group to search.
         group: &'a str,
     },
+    ThreadProgress {
+        /// Thread ID to get progress for.
+        id: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -25,6 +30,7 @@ impl Service<'_> {
             Self::GetGroup { group } => format!("groups/{group}"),
             Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
             Self::GroupSearch { group } => format!("groups/{group}/search"),
+            Self::ThreadProgress { id } => format!("threads/{id}/progress"),
         };
         format!("/ps/service/{path}")
     }
@@ -36,30 +42,13 @@ impl From<Service<'_>> for String {
     }
 }
 
+// impl<'a> From<Service<'a>> for &'a str {
+//     fn from(val: Service<'a>) -> Self {
+//         val.url_path()
+//     }
+// }
+
 // Group
-
-struct PSGroupAccessStrVisitor;
-impl<'de> Visitor<'de> for PSGroupAccessStrVisitor {
-    type Value = PSGroupAccess;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("one of: \"public\", \"member\"")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        match v {
-            "public" => Ok(PSGroupAccess::Public),
-            "member" => Ok(PSGroupAccess::Member),
-            _ => Err(E::custom(format!(
-                "Server sent unknown PSGroupAccess type: {}",
-                v
-            ))),
-        }
-    }
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -90,6 +79,20 @@ impl Group {
 // Export
 
 #[derive(Debug, Deserialize)]
+#[serde(rename = "zip")]
+pub struct ThreadZip {
+    #[serde(rename = "$text")]
+    pub filename: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "message")]
+pub struct ThreadMessage {
+    #[serde(rename = "$text")]
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename = "processing")]
 pub struct ThreadProcessing {
     #[serde(rename = "@current")]
@@ -110,10 +113,20 @@ pub struct ThreadPackaging {
 #[derive(Debug, Deserialize)]
 #[serde(rename = "thread")]
 pub struct Thread {
+    #[serde(rename = "@id")]
+    pub id: String,
+    #[serde(rename = "@name")]
+    pub name: String,
+    #[serde(rename = "@username")]
+    pub username: String,
+    #[serde(rename = "@groupid")]
+    pub groupid: String,
     #[serde(rename = "@status")]
     pub status: String,
     pub processing: Option<ThreadProcessing>,
     pub packaging: Option<ThreadPackaging>,
+    pub zip: Option<ThreadZip>,
+    pub message: Option<ThreadMessage>,
 }
 
 // Search
@@ -122,13 +135,13 @@ pub struct Thread {
 pub struct SearchResultField {
     #[serde(rename = "@name")]
     pub name: String,
-    #[serde(rename = "$text")]
-    pub value: Option<String>,
+    #[serde(rename = "$text", default)]
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SearchResult {
-    #[serde(rename = "field")]
+    #[serde(rename = "field", default)]
     pub fields: Vec<SearchResultField>,
 }
 
@@ -143,10 +156,10 @@ pub struct SearchResultPage {
     #[serde(rename = "@total-results")]
     pub total_results: u64,
     #[serde(rename = "@first-result")]
-    pub first_result: u64,
+    pub first_result: Option<u64>,
     #[serde(rename = "@last-result")]
-    pub last_result: u64,
-    #[serde(rename = "result")]
+    pub last_result: Option<u64>,
+    #[serde(rename = "result", default)]
     pub results: Vec<SearchResult>,
 }
 
