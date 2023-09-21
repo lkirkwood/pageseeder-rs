@@ -95,16 +95,16 @@ pub enum ParaContent {
 pub struct Para {
     #[serde(rename = "@indent")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    indent: Option<u8>,
+    pub indent: Option<u8>,
     #[serde(rename = "@numbered")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    numbered: Option<bool>,
+    pub numbered: Option<bool>,
     #[serde(rename = "@prefix")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    prefix: Option<String>,
+    pub prefix: Option<String>,
     #[serde(rename = "$value", default)]
     // content: Vec<ParaContent>,
-    content: Vec<String>,
+    pub content: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
