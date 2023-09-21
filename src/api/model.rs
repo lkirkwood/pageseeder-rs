@@ -44,12 +44,6 @@ impl From<Service<'_>> for String {
     }
 }
 
-// impl<'a> From<Service<'a>> for &'a str {
-//     fn from(val: Service<'a>) -> Self {
-//         val.url_path()
-//     }
-// }
-
 // Group
 
 #[derive(Debug, Deserialize)]
