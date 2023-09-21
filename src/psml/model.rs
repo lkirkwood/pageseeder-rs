@@ -171,6 +171,7 @@ pub enum PropertyValue {
     Link(String),
     Markdown(String),
     Markup(String),
+    Value(String),
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
