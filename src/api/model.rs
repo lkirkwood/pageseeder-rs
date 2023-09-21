@@ -83,7 +83,7 @@ pub enum ThreadStatus {
     Warning,
     Cancelled,
     Failed,
-    Complete,
+    Completed,
 }
 
 impl ThreadStatus {
@@ -105,7 +105,7 @@ impl Display for ThreadStatus {
             Self::Warning => write!(f, "warning"),
             Self::Cancelled => write!(f, "cancelled"),
             Self::Failed => write!(f, "failed"),
-            Self::Complete => write!(f, "complete"),
+            Self::Completed => write!(f, "completed"),
         }
     }
 }
