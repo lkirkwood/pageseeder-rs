@@ -19,8 +19,8 @@ use self::oauth::PSToken;
 pub struct PSServer {
     pub url: String,
     credentials: oauth::PSCredentials,
-    client: Client,
     token: Mutex<Option<PSToken>>,
+    client: Client,
 }
 
 impl PSServer {
@@ -30,8 +30,8 @@ impl PSServer {
         PSServer {
             url,
             credentials,
-            client: Client::new(),
             token: Mutex::new(None),
+            client: Client::new(),
         }
     }
 
@@ -43,7 +43,7 @@ impl PSServer {
     // Unchecked
 
     /// Makes a get request to the server at the specified uri slug.
-    async fn get<'a, U: Into<String>>(
+    async fn get<U: Into<String>>(
         &self,
         uri: U,
         params: Option<Vec<(&str, &str)>>,
@@ -188,7 +188,9 @@ impl PSServer {
 
     // Checked
 
-    pub async fn checked_get<'a, U: Into<String>>(
+    /// Makes a get request.
+    /// Gets a new oauth token if necessary.
+    pub async fn checked_get<U: Into<String>>(
         &self,
         uri: U,
         params: Option<Vec<(&str, &str)>>,
