@@ -598,3 +598,17 @@ pub struct Document {
 }
 
 // TODO impl toc index
+
+impl Default for Document {
+    fn default() -> Self {
+        Self {
+            doc_info: None,
+            frag_info: vec![],
+            sections: vec![],
+            doc_type: None,
+            edit: None,
+            level: DocumentLevel::Portable,
+            lockstructure: None,
+        }
+    }
+}
