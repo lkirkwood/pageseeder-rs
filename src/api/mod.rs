@@ -183,7 +183,7 @@ impl PSServer {
         } else {
             self.token.lock().unwrap().as_ref().unwrap().header.clone()
         };
-        return Ok(header);
+        Ok(header)
     }
 
     // Checked

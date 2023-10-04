@@ -46,11 +46,11 @@ impl PSServer {
         };
         match de::from_str(&text) {
             Err(err) => {
-                return Err(PSError::ParseError {
+                Err(PSError::ParseError {
                     msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
                 })
             }
-            Ok(obj) => return Ok(obj),
+            Ok(obj) => Ok(obj),
         }
     }
 
@@ -61,7 +61,7 @@ impl PSServer {
             .await?;
 
         handle_http!("get group", resp);
-        return self.xml_from_response(resp).await;
+        self.xml_from_response(resp).await
     }
 
     pub async fn get_uri(&self, member: &str, uri: &str) -> PSResult<URI> {
@@ -70,7 +70,7 @@ impl PSServer {
             .await?;
 
         handle_http!("get uri", resp);
-        return self.xml_from_response(resp).await;
+        self.xml_from_response(resp).await
     }
 
     /// Returns the pageseeder thread that is exporting the URI(s).
@@ -86,7 +86,7 @@ impl PSServer {
             .await?;
 
         handle_http!("uri export", resp);
-        return self.xml_from_response(resp).await;
+        self.xml_from_response(resp).await
     }
 
     /// Searches a group.

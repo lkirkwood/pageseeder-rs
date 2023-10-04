@@ -131,10 +131,7 @@ pub enum ThreadStatus {
 impl ThreadStatus {
     /// Returns true if thread is still running.
     pub fn running(&self) -> bool {
-        match self {
-            Self::Initialised | Self::InProgress => true,
-            _ => false,
-        }
+        matches!(self, Self::Initialised | Self::InProgress)
     }
 }
 
