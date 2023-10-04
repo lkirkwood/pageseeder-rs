@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    model::{Group, SearchResultPage, Service, Thread},
+    model::{Group, SearchResultPage, Service, Thread, URI},
     PSServer,
 };
 
@@ -61,6 +61,15 @@ impl PSServer {
             .await?;
 
         handle_http!("get group", resp);
+        return self.xml_from_response(resp).await;
+    }
+
+    pub async fn get_uri(&self, member: &str, uri: &str) -> PSResult<URI> {
+        let resp = self
+            .checked_get(Service::GetUri { member, uri }, None, None)
+            .await?;
+
+        handle_http!("get uri", resp);
         return self.xml_from_response(resp).await;
     }
 

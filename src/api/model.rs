@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 #[derive(Debug, Clone)]
@@ -7,6 +8,12 @@ pub enum Service<'a> {
     GetGroup {
         /// Group to get.
         group: &'a str,
+    },
+    GetUri {
+        /// Member to get details as.
+        member: &'a str,
+        /// URI to get.
+        uri: &'a str,
     },
     UriExport {
         /// Member to export as.
@@ -30,6 +37,7 @@ impl Service<'_> {
     pub fn url_path(&self) -> String {
         let path = match self {
             Self::GetGroup { group } => format!("groups/{group}"),
+            Self::GetUri { member, uri } => format!("members/{member}/uris/{uri}"),
             Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
             Self::GroupSearch { group } => format!("groups/{group}/search"),
             Self::ThreadProgress { id } => format!("threads/{id}/progress"),
@@ -70,6 +78,40 @@ impl Group {
             .unwrap_or_else(|| panic!("Group name has no '-': {}", self.name))
             .1;
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct URI {
+    #[serde(rename = "@id")]
+    pub id: String,
+    #[serde(rename = "@scheme")]
+    pub scheme: String,
+    #[serde(rename = "@host")]
+    pub host: String,
+    #[serde(rename = "@port")]
+    pub port: String,
+    #[serde(rename = "@path")]
+    pub path: String,
+    #[serde(rename = "@decodedpath")]
+    pub decodedpath: String,
+    #[serde(rename = "@external")]
+    pub external: bool,
+    #[serde(rename = "@archived")]
+    pub archived: Option<bool>,
+    #[serde(rename = "@folder")]
+    pub folder: Option<bool>,
+    #[serde(rename = "@docid")]
+    pub docid: Option<String>,
+    #[serde(rename = "@mediatype")]
+    pub mediatype: Option<String>,
+    #[serde(rename = "@documenttype")]
+    pub documenttype: Option<String>,
+    #[serde(rename = "@title")]
+    pub title: Option<String>,
+    #[serde(rename = "@created")]
+    pub created: Option<DateTime<Utc>>,
+    #[serde(rename = "@modified")]
+    pub modified: Option<DateTime<Utc>>,
 }
 
 // Export
