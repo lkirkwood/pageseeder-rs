@@ -7,10 +7,11 @@ use serde::de::DeserializeOwned;
 use crate::{
     api::model::SearchResponse,
     error::{PSError, PSResult},
+    psml::model::Fragments,
 };
 
 use super::{
-    model::{Group, SearchResultPage, Service, Thread, URI},
+    model::{EventType, Group, SearchResultPage, Service, Thread, Uri, UriHistory},
     PSServer,
 };
 
@@ -45,11 +46,9 @@ impl PSServer {
             Ok(_text) => _text,
         };
         match de::from_str(&text) {
-            Err(err) => {
-                Err(PSError::ParseError {
-                    msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
-                })
-            }
+            Err(err) => Err(PSError::ParseError {
+                msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
+            }),
             Ok(obj) => Ok(obj),
         }
     }
@@ -64,12 +63,75 @@ impl PSServer {
         self.xml_from_response(resp).await
     }
 
-    pub async fn get_uri(&self, member: &str, uri: &str) -> PSResult<URI> {
+    /// Gets info about a single URI.
+    pub async fn get_uri(&self, member: &str, uri: &str) -> PSResult<Uri> {
         let resp = self
             .checked_get(Service::GetUri { member, uri }, None, None)
             .await?;
 
         handle_http!("get uri", resp);
+        self.xml_from_response(resp).await
+    }
+
+    /// Gets the history of a single URI.
+    pub async fn get_uri_history(&self, group: &str, uri: &str) -> PSResult<UriHistory> {
+        let resp = self
+            .checked_get(Service::GetUriHistory { group, uri }, None, None)
+            .await?;
+
+        handle_http!("get uri history", resp);
+        self.xml_from_response(resp).await
+    }
+
+    /// Gets the history of all URIs in a group.
+    /// TODO add auto pagination
+    pub async fn get_uris_history(
+        &self,
+        group: &str,
+        events: Vec<EventType>,
+        mut params: HashMap<&str, &str>,
+    ) -> PSResult<UriHistory> {
+        let events = events
+            .into_iter()
+            .map(|e| e.into())
+            .collect::<Vec<String>>()
+            .join(",");
+        params.insert("events", &events);
+
+        let resp = self
+            .checked_get(
+                Service::GetUrisHistory { group },
+                Some(params.into_iter().collect()),
+                None,
+            )
+            .await?;
+
+        handle_http!("get uris history", resp);
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn get_uri_fragment(
+        &self,
+        member: &str,
+        group: &str,
+        uri: &str,
+        fragment: &str,
+        params: HashMap<&str, &str>,
+    ) -> PSResult<Fragments> {
+        let resp = self
+            .checked_get(
+                Service::GetUriFragment {
+                    member,
+                    group,
+                    uri,
+                    fragment,
+                },
+                Some(params.into_iter().collect()),
+                None,
+            )
+            .await?;
+
+        handle_http!("get uri fragment", resp);
         self.xml_from_response(resp).await
     }
 

@@ -9,17 +9,28 @@ fn credentials() -> PSCredentials {
     }
 }
 
-#[tokio::test]
-async fn test_group_search() {
-    let server = PSServer::new(
+fn test_server() -> PSServer {
+    PSServer::new(
         env::var("PS_TEST_URL").expect("Set environment variable PS_TEST_URL"),
         credentials(),
-    );
-    server
+    )
+}
+
+#[tokio::test]
+async fn test_group_search() {
+    test_server()
         .group_search(
             &env::var("PS_TEST_GROUP").unwrap(),
             HashMap::from([("question", "config")]),
         )
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn test_uri_history() {
+    test_server()
+        .get_uri_history(&env::var("PS_TEST_GROUP").unwrap(), "_nd_config")
         .await
         .unwrap();
 }
