@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::text::{Heading, Image, Para};
+use super::text::{Alignment, Heading, Image, Para};
 
 // XRef
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -302,6 +302,78 @@ impl XRefFragment {
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct TableCaption {
+    #[serde(rename = "$text", default)]
+    caption: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TablePart {
+    Header,
+    Body,
+    Footer,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "col")]
+pub struct TableColumn {
+    #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
+    pub align: Option<Alignment>,
+    #[serde(rename = "@part", skip_serializing_if = "Option::is_none")]
+    pub part: Option<TablePart>,
+    #[serde(rename = "@role", skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(rename = "@width", skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "row")]
+pub struct TableRow {
+    #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
+    pub align: Option<Alignment>,
+    #[serde(rename = "@part", skip_serializing_if = "Option::is_none")]
+    pub part: Option<TablePart>,
+    #[serde(rename = "@role", skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(rename = "cell", default)]
+    pub cells: Vec<TableCell>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "cell")]
+pub struct TableCell {
+    #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
+    pub align: Option<Alignment>,
+    #[serde(rename = "@role", skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(rename = "@colspan", skip_serializing_if = "Option::is_none")]
+    pub colspan: Option<u64>,
+    #[serde(rename = "@rowspan", skip_serializing_if = "Option::is_none")]
+    pub rowspan: Option<u64>,
+    #[serde(rename = "$text", default)]
+    pub content: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Table {
+    pub caption: Option<TableCaption>,
+    #[serde(rename = "@role", skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(rename = "@summary", skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(rename = "@height", skip_serializing_if = "Option::is_none")]
+    pub height: Option<String>,
+    #[serde(rename = "@width", skip_serializing_if = "Option::is_none")]
+    pub width: Option<String>,
+    #[serde(rename = "col", default)]
+    pub cols: Vec<TableColumn>,
+    #[serde(rename = "row", default)]
+    pub rows: Vec<TableRow>,
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FragmentContent {
     #[serde(rename = "$text")]
@@ -318,7 +390,7 @@ pub enum FragmentContent {
         child: Vec<FragmentContent>,
     },
     Image(Image),
-    Table(()), // TODO impl fragment table
+    Table(Table),
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -371,6 +443,18 @@ impl Fragment {
             // attrs: self.attrs,
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub enum Fragments {
+    #[serde(rename = "fragment")]
+    Fragment(Fragment),
+    #[serde(rename = "properties-fragment")]
+    Properties(PropertiesFragment),
+    #[serde(rename = "xref-fragment")]
+    Xref(XRefFragment),
+    #[serde(rename = "media-fragment")]
+    Media(()),
 }
 
 // Section

@@ -114,3 +114,12 @@ pub struct Heading {
     #[serde(rename = "$value")]
     child: Vec<String>,
 }
+
+#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Alignment {
+    Left,
+    Center,
+    Right,
+    Justify,
+}

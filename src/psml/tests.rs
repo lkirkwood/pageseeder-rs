@@ -39,6 +39,18 @@ fn test_full_doc() {
         quick_xml::se::to_string(&doc).unwrap(),
     )
     .unwrap();
+}
+
+#[test]
+fn test_table() {
+    let doc: Document =
+        quick_xml::de::from_str(&fs::read_to_string("test/table.psml").unwrap()).unwrap();
+
+    fs::write(
+        "test/out/table.psml",
+        quick_xml::se::to_string(&doc).unwrap(),
+    )
+    .unwrap();
 
     println!("{doc:#?}");
 }
