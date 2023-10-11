@@ -1,43 +1,43 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "bold")]
 pub struct Bold {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Italic {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Underline {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Subscript {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Superscript {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Monospace {
     #[serde(rename = "$value", default)]
     content: Vec<CharacterStyle>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum CharacterStyle {
     #[serde(rename = "$text")]
@@ -57,7 +57,7 @@ pub enum CharacterStyle {
     // TODO inline, anchor, placeholder, br, link
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "image")]
 pub struct Image {
     // TODO enforce at least one of src, docid, uriid
@@ -77,7 +77,7 @@ pub struct Image {
     alt: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ParaContent {
     #[serde(rename = "$text")]
@@ -91,7 +91,7 @@ pub enum ParaContent {
     Image(Image),
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Para {
     #[serde(rename = "@indent")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -107,7 +107,7 @@ pub struct Para {
     pub content: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Heading {
     #[serde(rename = "@level")]
     level: Option<u8>,
@@ -115,7 +115,7 @@ pub struct Heading {
     child: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Alignment {
     Left,

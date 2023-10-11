@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::text::{Alignment, Heading, Image, Para};
 
 // XRef
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum XRefDisplayKind {
     #[serde(rename = "document")]
     Document,
@@ -18,7 +18,7 @@ pub enum XRefDisplayKind {
     Template,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum XRefKind {
     None,
@@ -26,7 +26,7 @@ pub enum XRefKind {
     Math,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML xref.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref.html
 pub struct XRef {
@@ -153,7 +153,7 @@ impl XRef {
 
 /// Property datatype attribute values.
 /// Does not support custom datatypes - they will be converted to "string".
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PropertyDatatype {
     String,
@@ -164,7 +164,7 @@ pub enum PropertyDatatype {
     Markup,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PropertyValue {
     XRef(XRef),
@@ -174,7 +174,7 @@ pub enum PropertyValue {
     Value(String),
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "property")]
 /// A PSML property.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-property.html
@@ -193,9 +193,22 @@ pub struct Property {
     pub values: Vec<PropertyValue>,
 }
 
+impl Property {
+    pub fn new(name: String, title: String, values: Vec<PropertyValue>) -> Self {
+        Property {
+            name,
+            title: Some(title),
+            values,
+            datatype: None,
+            multiple: None,
+            attr_value: None,
+        }
+    }
+}
+
 // Fragments
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML properties fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-properties-fragment.html
 pub struct PropertiesFragment {
@@ -245,7 +258,7 @@ impl PropertiesFragment {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct BlockXRef {
     #[serde(rename = "@archived")]
     pub archived: bool,
@@ -254,7 +267,7 @@ pub struct BlockXRef {
     pub display: Option<XRefDisplayKind>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML xref fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref-fragment.html
 pub struct XRefFragment {
@@ -301,13 +314,13 @@ impl XRefFragment {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct TableCaption {
     #[serde(rename = "$text", default)]
     caption: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum TablePart {
     Header,
@@ -315,7 +328,7 @@ pub enum TablePart {
     Footer,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "col")]
 pub struct TableColumn {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -328,7 +341,7 @@ pub struct TableColumn {
     pub width: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "row")]
 pub struct TableRow {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -341,7 +354,7 @@ pub struct TableRow {
     pub cells: Vec<TableCell>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "cell")]
 pub struct TableCell {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -356,7 +369,7 @@ pub struct TableCell {
     pub content: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Table {
     pub caption: Option<TableCaption>,
     #[serde(rename = "@role", skip_serializing_if = "Option::is_none")]
@@ -373,7 +386,7 @@ pub struct Table {
     pub rows: Vec<TableRow>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum FragmentContent {
     #[serde(rename = "$text")]
@@ -393,7 +406,7 @@ pub enum FragmentContent {
     Table(Table),
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-fragment.html
 pub struct Fragment {
@@ -445,7 +458,7 @@ impl Fragment {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Fragments {
     #[serde(rename = "fragment")]
     Fragment(Fragment),
@@ -459,7 +472,7 @@ pub enum Fragments {
 
 // Section
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum SectionContent {
     #[serde(rename = "fragment")]
     Fragment(Fragment),
@@ -476,7 +489,7 @@ pub enum SectionContent {
     },
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML Section.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-section.html
 pub struct Section {
@@ -530,7 +543,7 @@ impl Section {
 
 // Document
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// Describes the publication.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-publication.html
 pub struct Publication {
@@ -542,7 +555,7 @@ pub struct Publication {
     pub pub_type: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// The <description> element is used to provide a short text-only description.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-description.html
 pub struct Description {
@@ -550,7 +563,7 @@ pub struct Description {
     pub value: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// Metadata about this URI.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-uri.html
 pub struct URIDescriptor {
@@ -575,7 +588,7 @@ pub struct URIDescriptor {
     pub labels: Option<Labels>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// Wrapper for metadata about the document.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-documentinfo.html
 pub struct DocumentInfo {
@@ -588,7 +601,7 @@ pub struct DocumentInfo {
 }
 
 // TODO change this to vec of strings with custom deserializer.
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A comma-separated list of label values for a document, note or fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-labels.html
 pub struct Labels {
@@ -598,13 +611,13 @@ pub struct Labels {
 
 /// Previous document content if different from current (used when doing a compare).
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-content.html
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Content {
     #[serde(rename = "$value")]
     pub value: String,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// The note on the last notification of the fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-note.html
 pub struct Note {
@@ -622,14 +635,14 @@ pub struct Note {
     pub content: Content,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// The notes on the last notification of the fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-notes.html
 pub struct Notes {
     pub notes: Vec<Note>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// Metadata relating to a fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-locator.html
 pub struct Locator {
@@ -640,12 +653,12 @@ pub struct Locator {
     pub notes: Option<Notes>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct FragmentInfo {
     pub value: Vec<Locator>,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DocumentLevel {
     Metadata,
@@ -653,7 +666,7 @@ pub enum DocumentLevel {
     Processed,
 }
 
-#[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "document")]
 /// A PSML document.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-document.html
