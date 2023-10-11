@@ -696,6 +696,26 @@ pub struct Document {
 
 // TODO impl toc index
 
+impl Document {
+    pub fn get_section(&self, id: &str) -> Option<&Section> {
+        for section in &self.sections {
+            if section.id == id {
+                return Some(section);
+            }
+        }
+        None
+    }
+
+    pub fn get_mut_section(&mut self, id: &str) -> Option<&mut Section> {
+        for section in &mut self.sections {
+            if section.id == id {
+                return Some(section);
+            }
+        }
+        None
+    }
+}
+
 impl Default for Document {
     fn default() -> Self {
         Self {
