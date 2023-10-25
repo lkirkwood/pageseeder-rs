@@ -7,11 +7,12 @@ use serde::de::DeserializeOwned;
 use crate::{
     api::model::SearchResponse,
     error::{PSError, PSResult},
-    psml::model::Fragments,
 };
 
 use super::{
-    model::{EventType, Group, SearchResultPage, Service, Thread, Uri, UriHistory},
+    model::{
+        DocumentFragment, EventType, Group, SearchResultPage, Service, Thread, Uri, UriHistory,
+    },
     PSServer,
 };
 
@@ -117,7 +118,7 @@ impl PSServer {
         uri: &str,
         fragment: &str,
         params: HashMap<&str, &str>,
-    ) -> PSResult<Fragments> {
+    ) -> PSResult<DocumentFragment> {
         let resp = self
             .checked_get(
                 Service::GetUriFragment {
