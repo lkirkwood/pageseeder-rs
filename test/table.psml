@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<document level="portable">
+	<section id="content">
+		<fragment id="changelog">
+			<table width="100%">
+				<caption>My Table</caption>
+				<col part="body" role="some-role" />
+				<col part="body" align="justify" />
+				<col part="body" align="justify" />
+				<col part="body" />
+				<row part="header">
+					<cell>Col 1</cell>
+					<cell>Col 2</cell>
+					<cell>Col 3</cell>
+					<cell>Col 4</cell>
+				</row>
+				<row>
+					<cell>Col 1 Value 1</cell>
+					<cell colspan="2">Col 2 and 3 Value 1</cell>
+					<cell rowspan="2">Col 4 Value 1 and 2</cell>
+				</row>
+				<row>
+					<cell>Col 1 Value 2</cell>
+					<cell>Col 2 Value 2</cell>
+					<cell>Col 3 Value 2</cell>
+				</row>
+			</table>
+		</fragment>
+	</section>
+</document>
