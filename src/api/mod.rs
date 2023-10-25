@@ -107,7 +107,7 @@ impl PSServer {
     ) -> PSResult<Response> {
         let mut req = self.client.post(self.format_url(uri_slug));
         if params.is_some() {
-            req = req.query(params.unwrap());
+            req = req.query(&params.unwrap());
         }
         if headers.is_some() {
             req = req.headers(headers.unwrap());
@@ -123,14 +123,15 @@ impl PSServer {
         }
     }
 
-    async fn put<T: Into<Body>>(
+    async fn put<U: Into<String>, T: Into<Body>>(
         &self,
-        uri_slug: &str,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
     ) -> PSResult<Response> {
-        let mut req = self.client.put(self.format_url(uri_slug));
+        let uri = uri.into();
+        let mut req = self.client.put(self.format_url(&uri));
 
         if let Some(params) = params {
             req = req.query(&params);
@@ -145,7 +146,7 @@ impl PSServer {
         match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to put {}: {:?}", uri_slug, err),
+                msg: format!("Failed to put {}: {:?}", uri, err),
             }),
         }
     }
@@ -256,9 +257,9 @@ impl PSServer {
             .await
     }
 
-    async fn checked_put<T: Into<Body>>(
+    async fn checked_put<U: Into<String>, T: Into<Body>>(
         &self,
-        uri_slug: &str,
+        uri_slug: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
