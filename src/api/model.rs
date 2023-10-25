@@ -3,6 +3,8 @@ use std::fmt::Display;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
+use crate::psml::model::{Fragments, Locator};
+
 #[derive(Debug, Clone)]
 pub enum Service<'a> {
     GetGroup {
@@ -65,7 +67,7 @@ impl Service<'_> {
                 group,
                 uri,
                 fragment,
-            } => format!("/members/{member}/groups/{group}/uris/~{uri}/fragments/~{fragment}"),
+            } => format!("members/{member}/groups/{group}/uris/{uri}/fragments/{fragment}"),
             Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
             Self::GroupSearch { group } => format!("groups/{group}/search"),
             Self::ThreadProgress { id } => format!("threads/{id}/progress"),
@@ -235,6 +237,14 @@ pub struct UriHistory {
     pub event_types: String,
     #[serde(rename = "$value")]
     pub events: Vec<Event>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "document-fragment")]
+pub struct DocumentFragment {
+    pub locator: Option<Locator>,
+    #[serde(rename = "$value")]
+    pub fragment: Option<Fragments>,
 }
 
 // Export
