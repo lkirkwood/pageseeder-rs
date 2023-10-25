@@ -76,7 +76,7 @@ impl PSServer {
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
     ) -> PSResult<Response> {
-        let mut req = self.client.get(self.format_url(uri_slug));
+        let mut req = self.client.post(self.format_url(uri_slug));
 
         if let Some(params) = params {
             req = req.query(&params);
@@ -101,11 +101,11 @@ impl PSServer {
     async fn post_form<F: Serialize + ?Sized>(
         &self,
         uri_slug: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
     ) -> PSResult<Response> {
-        let mut req = self.client.get(self.format_url(uri_slug));
+        let mut req = self.client.post(self.format_url(uri_slug));
         if params.is_some() {
             req = req.query(params.unwrap());
         }
@@ -119,6 +119,33 @@ impl PSServer {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
                 msg: format!("Failed to post {}: {:?}", uri_slug, err),
+            }),
+        }
+    }
+
+    async fn put<T: Into<Body>>(
+        &self,
+        uri_slug: &str,
+        params: Option<Vec<(&str, &str)>>,
+        headers: Option<HeaderMap<HeaderValue>>,
+        body: Option<T>,
+    ) -> PSResult<Response> {
+        let mut req = self.client.put(self.format_url(uri_slug));
+
+        if let Some(params) = params {
+            req = req.query(&params);
+        }
+        if let Some(headers) = headers {
+            req = req.headers(headers);
+        }
+        if let Some(body) = body {
+            req = req.body(body);
+        }
+
+        match req.send().await {
+            Ok(resp) => Ok(resp),
+            Err(err) => Err(PSError::CommunicationError {
+                msg: format!("Failed to put {}: {:?}", uri_slug, err),
             }),
         }
     }
@@ -202,7 +229,7 @@ impl PSServer {
         self.get(uri, params, Some(new_headers)).await
     }
 
-    async fn checked_post<T: Into<Body>>(
+    async fn _checked_post<T: Into<Body>>(
         &self,
         uri_slug: &str,
         params: Option<Vec<(&str, &str)>>,
@@ -215,10 +242,10 @@ impl PSServer {
         self.post(uri_slug, params, Some(new_headers), body).await
     }
 
-    async fn checked_post_form<F: Serialize + ?Sized>(
+    async fn _checked_post_form<F: Serialize + ?Sized>(
         &self,
         uri_slug: &str,
-        params: Option<&Vec<(String, String)>>,
+        params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         form: Option<&F>,
     ) -> PSResult<Response> {
@@ -227,5 +254,18 @@ impl PSServer {
         new_headers.insert("authorization", token.clone());
         self.post_form(uri_slug, params, Some(new_headers), form)
             .await
+    }
+
+    async fn checked_put<T: Into<Body>>(
+        &self,
+        uri_slug: &str,
+        params: Option<Vec<(&str, &str)>>,
+        headers: Option<HeaderMap<HeaderValue>>,
+        body: Option<T>,
+    ) -> PSResult<Response> {
+        let token = self.update_token().await?;
+        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        new_headers.insert("authorization", token.clone());
+        self.put(uri_slug, params, Some(new_headers), body).await
     }
 }
