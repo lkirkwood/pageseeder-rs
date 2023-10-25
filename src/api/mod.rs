@@ -69,7 +69,7 @@ impl PSServer {
 
     /// Makes a post request to the server at the specified uri slug.
     /// Body data is included if provided.
-    async fn post<T: Into<Body>>(
+    async fn _post<T: Into<Body>>(
         &self,
         uri_slug: &str,
         params: Option<Vec<(&str, &str)>>,
@@ -98,7 +98,7 @@ impl PSServer {
 
     /// Makes a post request to the server at the specified uri slug.
     /// Form data is included if provided.
-    async fn post_form<F: Serialize + ?Sized>(
+    async fn _post_form<F: Serialize + ?Sized>(
         &self,
         uri_slug: &str,
         params: Option<Vec<(&str, &str)>>,
@@ -240,7 +240,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self.post(uri_slug, params, Some(new_headers), body).await
+        self._post(uri_slug, params, Some(new_headers), body).await
     }
 
     async fn _checked_post_form<F: Serialize + ?Sized>(
@@ -253,7 +253,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self.post_form(uri_slug, params, Some(new_headers), form)
+        self._post_form(uri_slug, params, Some(new_headers), form)
             .await
     }
 
