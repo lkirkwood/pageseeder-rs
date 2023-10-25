@@ -107,12 +107,23 @@ pub struct Para {
     pub content: Vec<String>,
 }
 
+impl Para {
+    pub fn new(content: Vec<String>) -> Self {
+        Para {
+            indent: None,
+            numbered: None,
+            prefix: None,
+            content,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Heading {
     #[serde(rename = "@level")]
-    level: Option<u8>,
+    pub level: Option<u8>,
     #[serde(rename = "$value")]
-    child: Vec<String>,
+    pub content: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]

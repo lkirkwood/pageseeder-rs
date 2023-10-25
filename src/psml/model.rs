@@ -27,6 +27,16 @@ pub enum XRefKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BlockXRefKind {
+    None,
+    Alternate,
+    Math,
+    Embed,
+    Transclude,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// A PSML xref.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref.html
 pub struct XRef {
@@ -174,6 +184,12 @@ pub enum PropertyValue {
     Value(String),
 }
 
+impl From<String> for PropertyValue {
+    fn from(value: String) -> Self {
+        Self::Value(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "property")]
 /// A PSML property.
@@ -258,13 +274,74 @@ impl PropertiesFragment {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 pub struct BlockXRef {
-    #[serde(rename = "@archived")]
-    pub archived: bool,
+    #[serde(rename = "@docid", skip_serializing_if = "Option::is_none")]
+    pub docid: Option<String>,
+    #[serde(rename = "@href", skip_serializing_if = "Option::is_none")]
+    pub href: Option<String>,
+    #[serde(rename = "@uriid", skip_serializing_if = "Option::is_none")]
+    pub uriid: Option<String>,
 
-    #[serde(rename = "@display")]
+    #[serde(rename = "@archived")]
+    pub archived: Option<bool>,
+    #[serde(rename = "@config", skip_serializing_if = "Option::is_none")]
+    pub config: Option<String>,
+    #[serde(rename = "@display", skip_serializing_if = "Option::is_none")]
     pub display: Option<XRefDisplayKind>,
+    #[serde(rename = "@documenttype", skip_serializing_if = "Option::is_none")]
+    pub documenttype: Option<String>,
+    #[serde(rename = "@external", skip_serializing_if = "Option::is_none")]
+    pub external: Option<bool>,
+    #[serde(rename = "@frag")]
+    pub frag: String,
+    #[serde(rename = "@id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(rename = "@labels", skip_serializing_if = "Option::is_none")]
+    pub labels: Option<String>,
+    #[serde(rename = "@level", skip_serializing_if = "Option::is_none")]
+    pub level: Option<u8>,
+    #[serde(rename = "@mediatype", skip_serializing_if = "Option::is_none")]
+    pub mediatype: Option<String>,
+    #[serde(rename = "@reversetitle", skip_serializing_if = "Option::is_none")]
+    pub reversetitle: Option<String>,
+    #[serde(rename = "@reverselink", skip_serializing_if = "Option::is_none")]
+    pub reverselink: Option<bool>,
+    #[serde(rename = "@reversefrag", skip_serializing_if = "Option::is_none")]
+    pub reversefrag: Option<String>,
+    #[serde(rename = "@title", skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub xref_type: Option<BlockXRefKind>,
+    #[serde(rename = "@unresolved", skip_serializing_if = "Option::is_none")]
+    pub unresolved: Option<bool>,
+    #[serde(rename = "@urititle", skip_serializing_if = "Option::is_none")]
+    pub urititle: Option<String>,
+    #[serde(rename = "@urilabels", skip_serializing_if = "Option::is_none")]
+    pub urilabels: Option<String>,
+}
+
+impl BlockXRef {
+    pub fn docid(docid: String) -> Self {
+        Self {
+            docid: Some(docid),
+            ..Default::default()
+        }
+    }
+
+    pub fn uriid(uriid: String) -> Self {
+        Self {
+            uriid: Some(uriid),
+            ..Default::default()
+        }
+    }
+
+    pub fn href(href: String) -> Self {
+        Self {
+            href: Some(href),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -446,14 +523,12 @@ impl Fragment {
 
     /// Adds the content to the fragment and returns it.
     pub fn with_content(mut self, content: Vec<FragmentContent>) -> Fragment {
-        // pub fn with_content(mut self, content: Vec<String>) -> Fragment {
         self.content.extend(content);
         Fragment {
             id: self.id,
             frag_type: self.frag_type,
             labels: self.labels,
             content: self.content,
-            // attrs: self.attrs,
         }
     }
 }
@@ -538,6 +613,15 @@ impl Section {
             fragment_types: None,
             content: Vec::new(),
         }
+    }
+
+    pub fn add_fragment(&mut self, fragment: Fragments) {
+        self.content.push(match fragment {
+            Fragments::Fragment(frag) => SectionContent::Fragment(frag),
+            Fragments::Media(frag) => SectionContent::Media(frag),
+            Fragments::Properties(frag) => SectionContent::PropertiesFragment(frag),
+            Fragments::Xref(frag) => SectionContent::XRefFragment(frag),
+        });
     }
 }
 
@@ -697,6 +781,19 @@ pub struct Document {
 // TODO impl toc index
 
 impl Document {
+    pub fn docid(&self) -> Option<&str> {
+        match &self.doc_info {
+            Some(doc_info) => match &doc_info.uri {
+                Some(uri) => match &uri.docid {
+                    Some(docid) => Some(&docid),
+                    None => None,
+                },
+                None => None,
+            },
+            None => None,
+        }
+    }
+
     pub fn get_section(&self, id: &str) -> Option<&Section> {
         for section in &self.sections {
             if section.id == id {
