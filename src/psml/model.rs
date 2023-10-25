@@ -785,7 +785,7 @@ impl Document {
         match &self.doc_info {
             Some(doc_info) => match &doc_info.uri {
                 Some(uri) => match &uri.docid {
-                    Some(docid) => Some(&docid),
+                    Some(docid) => Some(docid),
                     None => None,
                 },
                 None => None,
@@ -795,21 +795,11 @@ impl Document {
     }
 
     pub fn get_section(&self, id: &str) -> Option<&Section> {
-        for section in &self.sections {
-            if section.id == id {
-                return Some(section);
-            }
-        }
-        None
+        self.sections.iter().find(|&section| section.id == id)
     }
 
     pub fn get_mut_section(&mut self, id: &str) -> Option<&mut Section> {
-        for section in &mut self.sections {
-            if section.id == id {
-                return Some(section);
-            }
-        }
-        None
+        self.sections.iter_mut().find(|s| s.id == id)
     }
 }
 

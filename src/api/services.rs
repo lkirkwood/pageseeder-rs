@@ -7,7 +7,6 @@ use serde::de::DeserializeOwned;
 use crate::{
     api::model::SearchResponse,
     error::{PSError, PSResult},
-    psml::model::Fragments,
 };
 
 use super::{

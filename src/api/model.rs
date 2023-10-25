@@ -179,23 +179,23 @@ pub enum EventType {
     Task,
 }
 
-impl Into<String> for EventType {
-    fn into(self) -> String {
-        match self {
-            Self::Upload => "upload ".to_string(),
-            Self::Creation => "creation ".to_string(),
-            Self::Move => "move ".to_string(),
-            Self::Modification => "modification ".to_string(),
-            Self::Structure => "structure ".to_string(),
-            Self::Workflow => "workflow ".to_string(),
-            Self::Version => "version ".to_string(),
-            Self::Edit => "edit ".to_string(),
-            Self::Draft => "draft ".to_string(),
-            Self::Note => "note ".to_string(),
-            Self::Xref => "xref ".to_string(),
-            Self::Image => "image ".to_string(),
-            Self::Comment => "comment ".to_string(),
-            Self::Task => "task ".to_string(),
+impl From<EventType> for String {
+    fn from(val: EventType) -> Self {
+        match val {
+            EventType::Upload => "upload ".to_string(),
+            EventType::Creation => "creation ".to_string(),
+            EventType::Move => "move ".to_string(),
+            EventType::Modification => "modification ".to_string(),
+            EventType::Structure => "structure ".to_string(),
+            EventType::Workflow => "workflow ".to_string(),
+            EventType::Version => "version ".to_string(),
+            EventType::Edit => "edit ".to_string(),
+            EventType::Draft => "draft ".to_string(),
+            EventType::Note => "note ".to_string(),
+            EventType::Xref => "xref ".to_string(),
+            EventType::Image => "image ".to_string(),
+            EventType::Comment => "comment ".to_string(),
+            EventType::Task => "task ".to_string(),
         }
     }
 }
