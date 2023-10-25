@@ -7,11 +7,13 @@ use serde::de::DeserializeOwned;
 use crate::{
     api::model::SearchResponse,
     error::{PSError, PSResult},
+    psml::model::Fragments,
 };
 
 use super::{
     model::{
-        DocumentFragment, EventType, Group, SearchResultPage, Service, Thread, Uri, UriHistory,
+        DocumentFragment, EventType, FragmentCreation, Group, SearchResultPage, Service, Thread,
+        Uri, UriHistory,
     },
     PSServer,
 };
@@ -206,6 +208,33 @@ impl PSServer {
             .await?;
 
         handle_http!("get thread progress", resp);
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn put_uri_fragment(
+        &self,
+        member: &str,
+        group: &str,
+        uri: &str,
+        fragment: &str,
+        content: String,
+        params: Option<Vec<(&str, &str)>>,
+    ) -> PSResult<FragmentCreation> {
+        let resp = self
+            .checked_put(
+                Service::PutUriFragment {
+                    member,
+                    group,
+                    uri,
+                    fragment,
+                },
+                params,
+                None,
+                Some(content),
+            )
+            .await?;
+
+        handle_http!("put uri fragment", resp);
         self.xml_from_response(resp).await
     }
 }

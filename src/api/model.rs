@@ -51,6 +51,16 @@ pub enum Service<'a> {
         /// Thread ID to get progress for.
         id: &'a str,
     },
+    PutUriFragment {
+        /// Member to put fragment as.
+        member: &'a str,
+        /// Group URI is in.
+        group: &'a str,
+        /// URI of document.
+        uri: &'a str,
+        /// ID of fragment to put.
+        fragment: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -71,6 +81,12 @@ impl Service<'_> {
             Self::UriExport { member, uri } => format!("members/{member}/uris/{uri}/export"),
             Self::GroupSearch { group } => format!("groups/{group}/search"),
             Self::ThreadProgress { id } => format!("threads/{id}/progress"),
+            Self::PutUriFragment {
+                member,
+                group,
+                uri,
+                fragment,
+            } => format!("members/{member}/groups/{group}/uris/{uri}/fragments/{fragment}"),
         };
         format!("/ps/service/{path}")
     }
@@ -245,6 +261,14 @@ pub struct DocumentFragment {
     pub locator: Option<Locator>,
     #[serde(rename = "$value")]
     pub fragment: Option<Fragments>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "fragment-creation")]
+pub struct FragmentCreation {
+    #[serde(rename = "@unresolved-xrefs")]
+    pub unresolved_xrefs: Option<bool>,
+    pub document_fragment: DocumentFragment,
 }
 
 // Export
