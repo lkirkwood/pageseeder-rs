@@ -15,6 +15,7 @@ use crate::error::{PSError, PSResult};
 
 use self::oauth::PSToken;
 
+#[derive(Debug)]
 /// A struct for making asynchronous calls to a PageSeeder server.
 pub struct PSServer {
     pub url: String,

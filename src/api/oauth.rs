@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::error::{PSError, PSResult};
 
+#[derive(Debug)]
 pub enum PSCredentials {
     ClientCredentials { id: String, secret: String },
 }
@@ -25,6 +26,7 @@ impl PSCredentials {
     }
 }
 
+#[derive(Debug)]
 /// Temporary access token for making calls to psapi.
 pub struct PSToken {
     pub token: String,
