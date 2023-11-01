@@ -11,37 +11,33 @@ use crate::{
 
 use super::{
     model::{
-        DocumentFragment, EventType, FragmentCreation, Group, SearchResultPage, Service, Thread,
-        Uri, UriHistory,
+        DocumentFragment, Error, EventType, FragmentCreation, Group, SearchResultPage, Service,
+        Thread, Uri, UriHistory,
     },
     PSServer,
 };
 
-/// Returns an error if $resp has an error-class http return code.
-/// $op is used in the error message.
-macro_rules! handle_http {
-    ($op:expr, $resp:ident) => {
-        if !(200..300).contains(&$resp.status().as_u16()) {
-            let op = $op;
-            return Err(PSError::ServerError {
-                msg: format!(
-                    "{op} failed: {}",
-                    $resp
-                        .text()
-                        .await
-                        .unwrap_or("failed to get error from response".to_string())
-                ),
-            });
-        }
-    };
-}
-
 impl PSServer {
+    async fn handle_http(&self, op: &str, resp: Response) -> PSResult<Response> {
+        if !(200..300).contains(&resp.status().as_u16()) {
+            match self.xml_from_response::<Error>(resp).await {
+                Ok(err) => return Err(PSError::ApiError(err)),
+                Err(PSError::ParseError { xml, .. }) => {
+                    return Err(PSError::ServerError {
+                        msg: format!("{op} failed: {xml}",),
+                    })
+                }
+                Err(other) => return Err(other),
+            }
+        }
+        Ok(resp)
+    }
+
     /// Returns a type from the xml content of a response.
     async fn xml_from_response<T: DeserializeOwned>(&self, resp: Response) -> PSResult<T> {
         let text = match resp.text().await {
             Err(err) => {
-                return Err(PSError::ParseError {
+                return Err(PSError::CommunicationError {
                     msg: format!("Failed to decode server response: {:?}", err),
                 })
             }
@@ -49,7 +45,8 @@ impl PSServer {
         };
         match de::from_str(&text) {
             Err(err) => Err(PSError::ParseError {
-                msg: format!("Deserialisation of xml failed [[ {} ]]: {:?}", text, err),
+                msg: format!("Deserialisation of xml failed: {:?}", err),
+                xml: text,
             }),
             Ok(obj) => Ok(obj),
         }
@@ -61,7 +58,7 @@ impl PSServer {
             .checked_get(Service::GetGroup { group: name }, None, None)
             .await?;
 
-        handle_http!("get group", resp);
+        let resp = self.handle_http("get group", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -71,7 +68,7 @@ impl PSServer {
             .checked_get(Service::GetUri { member, uri }, None, None)
             .await?;
 
-        handle_http!("get uri", resp);
+        let resp = self.handle_http("get uri", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -81,7 +78,7 @@ impl PSServer {
             .checked_get(Service::GetUriHistory { group, uri }, None, None)
             .await?;
 
-        handle_http!("get uri history", resp);
+        let resp = self.handle_http("get uri history", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -108,7 +105,7 @@ impl PSServer {
             )
             .await?;
 
-        handle_http!("get uris history", resp);
+        let resp = self.handle_http("get uris history", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -133,7 +130,7 @@ impl PSServer {
             )
             .await?;
 
-        handle_http!("get uri fragment", resp);
+        let resp = self.handle_http("get uri fragment", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -149,7 +146,7 @@ impl PSServer {
             .checked_get(Service::UriExport { member, uri }, Some(params), None)
             .await?;
 
-        handle_http!("uri export", resp);
+        let resp = self.handle_http("uri export", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -164,10 +161,11 @@ impl PSServer {
         let param_vec: Vec<(&str, &str)> = params.iter().map(|t| (*t.0, *t.1)).collect();
 
         let service = Service::GroupSearch { group };
-        let resp = self.checked_get(service.clone(), Some(param_vec), None);
+        let resp = self
+            .checked_get(service.clone(), Some(param_vec), None)
+            .await?;
 
-        let resp = resp.await?;
-        handle_http!("group search", resp);
+        let resp = self.handle_http("group search", resp).await?;
         let results = self
             .xml_from_response::<SearchResponse>(resp)
             .await?
@@ -206,7 +204,7 @@ impl PSServer {
             .checked_get(Service::ThreadProgress { id: thread_id }, None, None)
             .await?;
 
-        handle_http!("get thread progress", resp);
+        let resp = self.handle_http("get thread progress", resp).await?;
         self.xml_from_response(resp).await
     }
 
@@ -233,7 +231,7 @@ impl PSServer {
             )
             .await?;
 
-        handle_http!("put uri fragment", resp);
+        let resp = self.handle_http("put uri fragment", resp).await?;
         self.xml_from_response(resp).await
     }
 }

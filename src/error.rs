@@ -1,11 +1,14 @@
 use std::{error::Error, fmt::Display};
 
+use crate::api;
+
 #[derive(Debug)]
 pub enum PSError {
     CommunicationError { msg: String },
-    ParseError { msg: String },
+    ParseError { msg: String, xml: String },
     ServerError { msg: String },
     TokenError { msg: String },
+    ApiError(api::model::Error),
 }
 
 pub type PSResult<T> = Result<T, PSError>;
@@ -17,14 +20,25 @@ impl Display for PSError {
             Self::CommunicationError { msg } => {
                 write!(f, "Error communicating with server: {}", msg)
             }
-            Self::ParseError { msg } => {
-                write!(f, "Error parsing server response: {}", msg)
+            Self::ParseError { msg, xml } => {
+                write!(
+                    f,
+                    "Error parsing server response: {}; Response was: {}",
+                    msg, xml
+                )
             }
             Self::ServerError { msg } => {
                 write!(f, "Operation failed on the server: {}", msg)
             }
             Self::TokenError { msg } => {
                 write!(f, "Error using token: {}", msg)
+            }
+            Self::ApiError(err) => {
+                write!(
+                    f,
+                    "Server reported error during following request: {}; Error was: {}",
+                    err.request, err.message
+                )
             }
         }
     }

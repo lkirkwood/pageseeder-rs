@@ -98,6 +98,16 @@ impl From<Service<'_>> for String {
     }
 }
 
+// Error
+
+#[derive(Debug, Deserialize)]
+pub struct Error {
+    #[serde(rename = "@id")]
+    pub id: String,
+    pub request: String,
+    pub message: String,
+}
+
 // Group
 
 #[derive(Debug, Deserialize)]
@@ -109,10 +119,15 @@ pub enum PSGroupAccess {
 
 #[derive(Debug, Deserialize)]
 pub struct Group {
+    #[serde(rename = "@id")]
     pub id: u32,
+    #[serde(rename = "@name")]
     pub name: String,
+    #[serde(rename = "@owner")]
     pub owner: String,
+    #[serde(rename = "@description")]
     pub description: String,
+    #[serde(rename = "@access")]
     pub access: PSGroupAccess,
 }
 
