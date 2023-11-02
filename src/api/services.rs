@@ -11,8 +11,8 @@ use crate::{
 
 use super::{
     model::{
-        DocumentFragment, Error, EventType, FragmentCreation, Group, SearchResultPage, Service,
-        Thread, Uri, UriHistory,
+        DocumentFragment, Error, EventType, FragmentCreation, Group, LoadUnzip, SearchResultPage,
+        Service, Thread, Upload, Uri, UriHistory,
     },
     PSServer,
 };
@@ -232,6 +232,51 @@ impl PSServer {
             .await?;
 
         let resp = self.handle_http("put uri fragment", resp).await?;
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn upload(
+        &self,
+        group: &str,
+        filename: &str,
+        file: Vec<u8>,
+        mut params: HashMap<&str, &str>,
+    ) -> PSResult<Upload> {
+        params.insert("group", group);
+        params.insert("filename", filename);
+
+        let resp = self
+            .checked_put(
+                Service::Upload,
+                Some(params.into_iter().collect()),
+                None,
+                Some(file),
+            )
+            .await?;
+
+        let resp = self.handle_http("file upload", resp).await?;
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn unzip_loading_zone(
+        &self,
+        member: &str,
+        group: &str,
+        path: &str,
+        mut params: HashMap<&str, &str>,
+    ) -> PSResult<LoadUnzip> {
+        params.insert("path", path);
+
+        let resp = self
+            .checked_post(
+                Service::UnzipLoadingZone { member, group },
+                Some(params.into_iter().collect()),
+                None,
+                Option::<&[u8]>::None,
+            )
+            .await?;
+
+        let resp = self.handle_http("unzip loading zone content", resp).await?;
         self.xml_from_response(resp).await
     }
 }

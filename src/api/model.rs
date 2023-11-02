@@ -61,6 +61,13 @@ pub enum Service<'a> {
         /// ID of fragment to put.
         fragment: &'a str,
     },
+    Upload,
+    UnzipLoadingZone {
+        /// Member owning the loading zone.
+        member: &'a str,
+        /// Group the loading zone is in.
+        group: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -87,6 +94,10 @@ impl Service<'_> {
                 uri,
                 fragment,
             } => format!("members/{member}/groups/{group}/uris/{uri}/fragments/{fragment}"),
+            Self::Upload => return format!("/ps/servlet/upload"),
+            Self::UnzipLoadingZone { member, group } => {
+                format!("members/{member}/groups/{group}/loadingzone/unzip")
+            }
         };
         format!("/ps/service/{path}")
     }
@@ -409,4 +420,37 @@ pub struct SearchResultPage {
 #[derive(Debug, Deserialize)]
 pub struct SearchResponse {
     pub results: SearchResultPage,
+}
+
+// Uploading
+
+#[derive(Debug, Deserialize)]
+pub struct File {
+    #[serde(rename = "@name")]
+    pub name: String,
+    #[serde(rename = "@path")]
+    pub path: String,
+    #[serde(rename = "@type")]
+    pub ftype: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Upload {
+    #[serde(rename = "@member")]
+    pub member: String,
+    #[serde(rename = "@uploadid")]
+    pub uploadid: Option<String>,
+    #[serde(rename = "@status")]
+    pub status: Option<String>,
+    #[serde(rename = "@max-workflow-notifications")]
+    pub max_workflow_notifications: u8,
+    pub message: Option<String>,
+    pub uri: Option<Uri>,
+    pub file: Option<File>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "load-unzip")]
+pub struct LoadUnzip {
+    pub thread: Thread,
 }
