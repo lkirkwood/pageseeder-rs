@@ -40,19 +40,19 @@ pub enum BlockXRefKind {
 /// A PSML xref.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-xref.html
 pub struct XRef {
-    #[serde(rename = "@uriid")]
+    #[serde(rename = "@uriid", skip_serializing_if = "Option::is_none")]
     /// Destination uriid.
     pub uriid: Option<String>,
-    #[serde(rename = "@docid")]
+    #[serde(rename = "@docid", skip_serializing_if = "Option::is_none")]
     /// Destination docid.
     pub docid: Option<String>,
-    #[serde(rename = "@href")]
+    #[serde(rename = "@href", skip_serializing_if = "Option::is_none")]
     /// Destination href.#
     pub href: Option<String>,
     #[serde(rename = "$text")]
     /// Text content to display instead of xref.
     pub content: String,
-    #[serde(rename = "@config")]
+    #[serde(rename = "@config", skip_serializing_if = "Option::is_none")]
     /// XRef config name.
     pub config: Option<String>,
     #[serde(rename = "@display")]
@@ -61,22 +61,22 @@ pub struct XRef {
     #[serde(rename = "@frag")]
     /// ID of fragment to link to.
     pub frag_id: String,
-    #[serde(rename = "@labels")]
+    #[serde(rename = "@labels", skip_serializing_if = "Option::is_none")]
     /// Comma separated xref labels.
     pub labels: Option<String>,
-    #[serde(rename = "@level")]
+    #[serde(rename = "@level", skip_serializing_if = "Option::is_none")]
     /// Level for heading numbering of target document (1-5).
     pub level: Option<String>,
     #[serde(rename = "@reverselink")]
     /// Whether xref is bidirectional.
     pub reverselink: bool,
-    #[serde(rename = "@reversetitle")]
+    #[serde(rename = "@reversetitle", skip_serializing_if = "Option::is_none")]
     /// Manually entered title for reverse xref.
     pub reversetitle: Option<String>,
-    #[serde(rename = "@title")]
+    #[serde(rename = "@title", skip_serializing_if = "Option::is_none")]
     /// Manually entered title for xref.
     pub title: Option<String>,
-    #[serde(rename = "@type")]
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     /// XRef type
     pub xref_type: Option<XRefKind>,
 }
@@ -190,6 +190,18 @@ impl From<String> for PropertyValue {
     }
 }
 
+impl PropertyValue {
+    pub fn datatype(&self) -> PropertyDatatype {
+        match self {
+            Self::XRef(_) => PropertyDatatype::XRef,
+            Self::Link(_) => PropertyDatatype::Link,
+            Self::Markdown(_) => PropertyDatatype::Markdown,
+            Self::Markup(_) => PropertyDatatype::Markup,
+            Self::Value(_) => PropertyDatatype::String,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "property")]
 /// A PSML property.
@@ -197,25 +209,26 @@ impl From<String> for PropertyValue {
 pub struct Property {
     #[serde(rename = "@name")]
     pub name: String,
-    #[serde(rename = "@title")]
+    #[serde(rename = "@title", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(rename = "@datatype")]
+    #[serde(rename = "@datatype", skip_serializing_if = "Option::is_none")]
     pub datatype: Option<PropertyDatatype>,
-    #[serde(rename = "@multiple")]
+    #[serde(rename = "@multiple", skip_serializing_if = "Option::is_none")]
     pub multiple: Option<bool>,
-    #[serde(rename = "@value")]
+    #[serde(rename = "@value", skip_serializing_if = "Option::is_none")]
     pub attr_value: Option<String>,
     #[serde(rename = "$value", default)]
     pub values: Vec<PropertyValue>,
 }
 
 impl Property {
-    pub fn new(name: String, title: String, values: Vec<PropertyValue>) -> Self {
+    pub fn with_value(name: String, title: String, value: PropertyValue) -> Self {
+        let datatype = value.datatype();
         Property {
             name,
             title: Some(title),
-            values,
-            datatype: None,
+            values: vec![value],
+            datatype: Some(datatype),
             multiple: None,
             attr_value: None,
         }
@@ -583,10 +596,10 @@ pub struct Section {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether fragments in this section can be edited in the UI.
     pub edit: Option<bool>,
-    #[serde(rename = "@lock")]
+    #[serde(rename = "@lockstructure")]
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether the structure of this section can be modified.
-    pub lock: Option<bool>,
+    pub lockstructure: Option<bool>,
     #[serde(rename = "@overwrite")]
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Whether the existing section/fragments are to be overwritten by these during upload.
@@ -608,7 +621,7 @@ impl Section {
             title: None,
             content_title: None,
             edit: Some(true),
-            lock: Some(false),
+            lockstructure: Some(false),
             overwrite: Some(true),
             fragment_types: None,
             content: Vec::new(),
@@ -647,32 +660,34 @@ pub struct Description {
     pub value: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 /// Metadata about this URI.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-uri.html
 pub struct URIDescriptor {
     // Attributes
-    #[serde(rename = "@docid")]
+    #[serde(rename = "@docid", skip_serializing_if = "Option::is_none")]
     /// Docid of this document.
     pub docid: Option<String>,
-    #[serde(rename = "@documenttype")]
+    #[serde(rename = "@documenttype", skip_serializing_if = "Option::is_none")]
     /// Type of the document.
     pub doc_type: Option<String>,
-    #[serde(rename = "@title")]
+    #[serde(rename = "@title", skip_serializing_if = "Option::is_none")]
     /// Title for the document.
     pub title: Option<String>,
-    #[serde(rename = "@folder")]
+    #[serde(rename = "@folder", skip_serializing_if = "Option::is_none")]
     /// If true, this is a folder.
     pub folder: Option<bool>,
 
     // Elements
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Description of the document.
     pub description: Option<Description>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     /// Labels on the document.
     pub labels: Option<Labels>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 /// Wrapper for metadata about the document.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-documentinfo.html
 pub struct DocumentInfo {
