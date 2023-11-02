@@ -70,14 +70,15 @@ impl PSServer {
 
     /// Makes a post request to the server at the specified uri slug.
     /// Body data is included if provided.
-    async fn _post<T: Into<Body>>(
+    async fn post<U: Into<String>, T: Into<Body>>(
         &self,
-        uri_slug: &str,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
     ) -> PSResult<Response> {
-        let mut req = self.client.post(self.format_url(uri_slug));
+        let uri = uri.into();
+        let mut req = self.client.post(self.format_url(&uri));
 
         if let Some(params) = params {
             req = req.query(&params);
@@ -92,7 +93,7 @@ impl PSServer {
         match req.send().await {
             Ok(resp) => Ok(resp),
             Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to post {}: {:?}", uri_slug, err),
+                msg: format!("Failed to post {}: {:?}", uri, err),
             }),
         }
     }
@@ -231,9 +232,9 @@ impl PSServer {
         self.get(uri, params, Some(new_headers)).await
     }
 
-    async fn _checked_post<T: Into<Body>>(
+    async fn checked_post<U: Into<String>, T: Into<Body>>(
         &self,
-        uri_slug: &str,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
@@ -241,7 +242,7 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self._post(uri_slug, params, Some(new_headers), body).await
+        self.post(uri, params, Some(new_headers), body).await
     }
 
     async fn _checked_post_form<F: Serialize + ?Sized>(
@@ -260,7 +261,7 @@ impl PSServer {
 
     async fn checked_put<U: Into<String>, T: Into<Body>>(
         &self,
-        uri_slug: U,
+        uri: U,
         params: Option<Vec<(&str, &str)>>,
         headers: Option<HeaderMap<HeaderValue>>,
         body: Option<T>,
@@ -268,6 +269,6 @@ impl PSServer {
         let token = self.update_token().await?;
         let mut new_headers = headers.unwrap_or(HeaderMap::new());
         new_headers.insert("authorization", token.clone());
-        self.put(uri_slug, params, Some(new_headers), body).await
+        self.put(uri, params, Some(new_headers), body).await
     }
 }
