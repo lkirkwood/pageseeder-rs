@@ -1,4 +1,3 @@
-use quick_xml::impl_deserialize_for_internally_tagged_enum;
 use serde::{Deserialize, Serialize};
 
 use super::model::XRef;
@@ -68,7 +67,7 @@ pub struct Monospace {
 
 impl_char_style!(Monospace);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CharacterStyle {
     #[serde(rename = "$text")]
@@ -81,18 +80,6 @@ pub enum CharacterStyle {
     Monospace(Monospace),
     XRef(XRef),
     // TODO inline, anchor, placeholder, br, link
-}
-
-impl_deserialize_for_internally_tagged_enum! {
-    CharacterStyle, "@tag",
-    ("$text" => Text(String)),
-    ("bold" => Bold(Bold)),
-    ("italic" => Italic(Italic)),
-    ("underline" => Underline(Underline)),
-    ("subscript" => Subscript(Subscript)),
-    ("superscript" => Superscript(Superscript)),
-    ("monospace" => Monospace(Monospace)),
-    ("xref" => XRef(XRef)),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -115,7 +102,7 @@ pub struct Image {
     alt: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ParaContent {
     #[serde(rename = "$text")]
@@ -128,19 +115,6 @@ pub enum ParaContent {
     Monospace(Monospace),
     XRef(XRef),
     Image(Image),
-}
-
-impl_deserialize_for_internally_tagged_enum! {
-    ParaContent, "@tag",
-    ("$text" => Text(String)),
-    ("bold" => Bold(Bold)),
-    ("italic" => Italic(Italic)),
-    ("underline" => Underline(Underline)),
-    ("subscript" => Subscript(Subscript)),
-    ("superscript" => Superscript(Superscript)),
-    ("monospace" => Monospace(Monospace)),
-    ("xref" => XRef(XRef)),
-    ("image" => Image(Image)),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -174,7 +148,7 @@ impl Para {
 pub struct Heading {
     #[serde(rename = "@level")]
     pub level: Option<u8>,
-    #[serde(rename = "$value")]
+    #[serde(rename = "$value", default)]
     pub content: Vec<CharacterStyle>,
 }
 
