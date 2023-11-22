@@ -1,6 +1,8 @@
 use quick_xml::impl_deserialize_for_internally_tagged_enum;
 use serde::{Deserialize, Serialize};
 
+use super::model::XRef;
+
 macro_rules! impl_char_style {
     ($name:ty) => {
         impl $name {
@@ -83,6 +85,8 @@ pub enum CharacterStyle {
     Superscript(Superscript),
     #[serde(rename = "monospace")]
     Monospace(Monospace),
+    #[serde(rename = "xref")]
+    XRef(XRef),
     // TODO inline, anchor, placeholder, br, link
 }
 
@@ -111,12 +115,21 @@ pub struct Image {
 pub enum ParaContent {
     #[serde(rename = "$text")]
     Text(String),
+    #[serde(rename = "bold")]
     Bold(Bold),
+    #[serde(rename = "italic")]
     Italic(Italic),
+    #[serde(rename = "underline")]
     Underline(Underline),
+    #[serde(rename = "subscript")]
     Subscript(Subscript),
+    #[serde(rename = "superscript")]
     Superscript(Superscript),
+    #[serde(rename = "monospace")]
     Monospace(Monospace),
+    #[serde(rename = "xref")]
+    XRef(XRef),
+    #[serde(rename = "image")]
     Image(Image),
 }
 
@@ -129,6 +142,7 @@ impl_deserialize_for_internally_tagged_enum! {
     ("subscript" => Subscript(Subscript)),
     ("superscript" => Superscript(Superscript)),
     ("monospace" => Monospace(Monospace)),
+    ("xref" => XRef(XRef)),
     ("image" => Image(Image)),
 }
 
