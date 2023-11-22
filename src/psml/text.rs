@@ -1,41 +1,70 @@
+use quick_xml::impl_deserialize_for_internally_tagged_enum;
 use serde::{Deserialize, Serialize};
+
+macro_rules! impl_char_style {
+    ($name:ty) => {
+        impl $name {
+            pub fn new(content: Vec<CharacterStyle>) -> Self {
+                Self { content }
+            }
+
+            pub fn text(text: String) -> Self {
+                Self {
+                    content: vec![CharacterStyle::Text(text)],
+                }
+            }
+        }
+    };
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename = "bold")]
 pub struct Bold {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Bold);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Italic {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Italic);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Underline {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Underline);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Subscript {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Subscript);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Superscript {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Superscript);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Monospace {
     #[serde(rename = "$value", default)]
-    content: Vec<CharacterStyle>,
+    pub content: Vec<CharacterStyle>,
 }
+
+impl_char_style!(Monospace);
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -77,7 +106,7 @@ pub struct Image {
     alt: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ParaContent {
     #[serde(rename = "$text")]
@@ -91,7 +120,20 @@ pub enum ParaContent {
     Image(Image),
 }
 
+impl_deserialize_for_internally_tagged_enum! {
+    ParaContent, "@tag",
+    ("$text" => Text(String)),
+    ("bold" => Bold(Bold)),
+    ("italic" => Italic(Italic)),
+    ("underline" => Underline(Underline)),
+    ("subscript" => Subscript(Subscript)),
+    ("superscript" => Superscript(Superscript)),
+    ("monospace" => Monospace(Monospace)),
+    ("image" => Image(Image)),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename = "para")]
 pub struct Para {
     #[serde(rename = "@indent")]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -103,12 +145,11 @@ pub struct Para {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prefix: Option<String>,
     #[serde(rename = "$value", default)]
-    // content: Vec<ParaContent>,
-    pub content: Vec<String>,
+    pub content: Vec<ParaContent>,
 }
 
 impl Para {
-    pub fn new(content: Vec<String>) -> Self {
+    pub fn new(content: Vec<ParaContent>) -> Self {
         Para {
             indent: None,
             numbered: None,
