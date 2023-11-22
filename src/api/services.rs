@@ -11,8 +11,8 @@ use crate::{
 
 use super::{
     model::{
-        DocumentFragment, Error, EventType, FragmentCreation, Group, LoadUnzip, SearchResultPage,
-        Service, Thread, Upload, Uri, UriHistory,
+        DocumentFragment, Error, EventType, FragmentCreation, Group, LoadStart, LoadUnzip,
+        SearchResultPage, Service, Thread, Upload, Uri, UriHistory,
     },
     PSServer,
 };
@@ -277,6 +277,27 @@ impl PSServer {
             .await?;
 
         let resp = self.handle_http("unzip loading zone content", resp).await?;
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn start_loading(
+        &self,
+        member: &str,
+        group: &str,
+        params: HashMap<&str, &str>,
+    ) -> PSResult<LoadStart> {
+        let resp = self
+            .checked_post(
+                Service::StartLoading { member, group },
+                Some(params.into_iter().collect()),
+                None,
+                Option::<&[u8]>::None,
+            )
+            .await?;
+
+        let resp = self
+            .handle_http("start loading the loading zone", resp)
+            .await?;
         self.xml_from_response(resp).await
     }
 }

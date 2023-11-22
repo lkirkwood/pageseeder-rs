@@ -68,6 +68,12 @@ pub enum Service<'a> {
         /// Group the loading zone is in.
         group: &'a str,
     },
+    StartLoading {
+        /// Member owning the loading zone.
+        member: &'a str,
+        /// Group the loading zone is in.
+        group: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -97,6 +103,9 @@ impl Service<'_> {
             Self::Upload => return format!("/ps/servlet/upload"),
             Self::UnzipLoadingZone { member, group } => {
                 format!("members/{member}/groups/{group}/loadingzone/unzip")
+            }
+            Self::StartLoading { member, group } => {
+                format!("members/{member}/groups/{group}/loadingzone/start")
             }
         };
         format!("/ps/service/{path}")
@@ -452,5 +461,11 @@ pub struct Upload {
 #[derive(Debug, Deserialize)]
 #[serde(rename = "load-unzip")]
 pub struct LoadUnzip {
+    pub thread: Thread,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "load-start")]
+pub struct LoadStart {
     pub thread: Thread,
 }
