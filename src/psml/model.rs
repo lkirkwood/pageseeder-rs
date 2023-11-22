@@ -141,21 +141,17 @@ impl XRef {
 
     /// Adds the specified content to the xref and returns it.
     pub fn with_content(self, content: String) -> XRef {
-        XRef {
-            uriid: self.uriid,
-            docid: self.docid,
-            href: self.href,
-            content,
-            config: self.config,
-            display: self.display,
-            frag_id: self.frag_id,
-            labels: self.labels,
-            level: self.level,
-            reverselink: self.reverselink,
-            reversetitle: self.reversetitle,
-            title: self.title,
-            xref_type: self.xref_type,
-        }
+        XRef { content, ..self }
+    }
+
+    /// Sets the title on the xref and returns it.
+    pub fn with_title(self, title: Option<String>) -> XRef {
+        XRef { title, ..self }
+    }
+
+    /// Sets the display mode on the xref and returns it.
+    pub fn with_display(self, display: XRefDisplayKind) -> XRef {
+        XRef { display, ..self }
     }
 }
 
