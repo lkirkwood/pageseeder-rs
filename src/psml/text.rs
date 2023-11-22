@@ -68,26 +68,31 @@ pub struct Monospace {
 
 impl_char_style!(Monospace);
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum CharacterStyle {
     #[serde(rename = "$text")]
     Text(String),
-    #[serde(rename = "bold")]
     Bold(Bold),
-    #[serde(rename = "italic")]
     Italic(Italic),
-    #[serde(rename = "underline")]
     Underline(Underline),
-    #[serde(rename = "subscript")]
     Subscript(Subscript),
-    #[serde(rename = "superscript")]
     Superscript(Superscript),
-    #[serde(rename = "monospace")]
     Monospace(Monospace),
-    #[serde(rename = "xref")]
     XRef(XRef),
     // TODO inline, anchor, placeholder, br, link
+}
+
+impl_deserialize_for_internally_tagged_enum! {
+    CharacterStyle, "@tag",
+    ("$text" => Text(String)),
+    ("bold" => Bold(Bold)),
+    ("italic" => Italic(Italic)),
+    ("underline" => Underline(Underline)),
+    ("subscript" => Subscript(Subscript)),
+    ("superscript" => Superscript(Superscript)),
+    ("monospace" => Monospace(Monospace)),
+    ("xref" => XRef(XRef)),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -115,21 +120,13 @@ pub struct Image {
 pub enum ParaContent {
     #[serde(rename = "$text")]
     Text(String),
-    #[serde(rename = "bold")]
     Bold(Bold),
-    #[serde(rename = "italic")]
     Italic(Italic),
-    #[serde(rename = "underline")]
     Underline(Underline),
-    #[serde(rename = "subscript")]
     Subscript(Subscript),
-    #[serde(rename = "superscript")]
     Superscript(Superscript),
-    #[serde(rename = "monospace")]
     Monospace(Monospace),
-    #[serde(rename = "xref")]
     XRef(XRef),
-    #[serde(rename = "image")]
     Image(Image),
 }
 
