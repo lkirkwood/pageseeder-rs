@@ -178,7 +178,7 @@ pub struct Heading {
     #[serde(rename = "@level")]
     pub level: Option<u8>,
     #[serde(rename = "$value")]
-    pub content: Vec<String>,
+    pub content: Vec<CharacterStyle>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
