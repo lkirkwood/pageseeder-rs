@@ -12,8 +12,6 @@ fn test_fragment() {
         quick_xml::se::to_string(&doc).unwrap(),
     )
     .unwrap();
-
-    println!("{doc:#?}");
 }
 
 #[test]
