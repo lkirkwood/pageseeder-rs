@@ -414,7 +414,7 @@ pub enum TablePart {
     Footer,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename = "col")]
 pub struct TableColumn {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -427,7 +427,7 @@ pub struct TableColumn {
     pub width: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename = "row")]
 pub struct TableRow {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -440,7 +440,7 @@ pub struct TableRow {
     pub cells: Vec<TableCell>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename = "cell")]
 pub struct TableCell {
     #[serde(rename = "@align", skip_serializing_if = "Option::is_none")]
@@ -470,6 +470,32 @@ pub struct Table {
     pub cols: Vec<TableColumn>,
     #[serde(rename = "row", default)]
     pub rows: Vec<TableRow>,
+}
+
+impl Table {
+    pub fn basic(cols: usize, cells: Vec<Vec<String>>) -> Self {
+        Table {
+            caption: None,
+            role: None,
+            summary: None,
+            height: None,
+            width: None,
+            cols: (0..cols).map(|_| TableColumn::default()).collect(),
+            rows: cells
+                .into_iter()
+                .map(|row| TableRow {
+                    cells: row
+                        .into_iter()
+                        .map(|cell| TableCell {
+                            content: cell,
+                            ..Default::default()
+                        })
+                        .collect(),
+                    ..Default::default()
+                })
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
