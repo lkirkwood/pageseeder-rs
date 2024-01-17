@@ -473,9 +473,9 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn basic(cols: usize, cells: Vec<Vec<String>>) -> Self {
+    pub fn basic(cols: usize, cells: Vec<Vec<String>>, caption: String) -> Self {
         Table {
-            caption: None,
+            caption: Some(TableCaption { caption }),
             role: None,
             summary: None,
             height: None,
