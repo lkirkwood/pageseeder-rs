@@ -303,6 +303,7 @@ pub struct DocumentFragment {
 pub struct FragmentCreation {
     #[serde(rename = "@unresolved-xrefs")]
     pub unresolved_xrefs: Option<bool>,
+    #[serde(rename = "document-fragment")]
     pub document_fragment: DocumentFragment,
 }
 
