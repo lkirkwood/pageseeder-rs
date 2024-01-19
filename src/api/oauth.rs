@@ -26,7 +26,7 @@ impl PSCredentials {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Temporary access token for making calls to psapi.
 pub struct PSToken {
     pub token: String,
