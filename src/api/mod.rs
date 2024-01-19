@@ -19,8 +19,8 @@ use self::oauth::PSToken;
 /// A struct for making asynchronous calls to a PageSeeder server.
 pub struct PSServer {
     pub url: String,
-    credentials: oauth::PSCredentials,
-    token: Mutex<Option<PSToken>>,
+    pub credentials: oauth::PSCredentials,
+    pub token: Mutex<Option<PSToken>>,
     client: Client,
 }
 
@@ -32,6 +32,15 @@ impl PSServer {
             url,
             credentials,
             token: Mutex::new(None),
+            client: Client::new(),
+        }
+    }
+
+    pub fn preauth(url: String, credentials: oauth::PSCredentials, token: PSToken) -> Self {
+        PSServer {
+            url,
+            credentials,
+            token: Mutex::new(Some(token)),
             client: Client::new(),
         }
     }
@@ -206,7 +215,7 @@ impl PSServer {
     }
 
     /// Gets a new access token and stores it only if the current one is invalid.
-    async fn update_token(&self) -> PSResult<HeaderValue> {
+    pub async fn update_token(&self) -> PSResult<HeaderValue> {
         let header = if !self.valid_token() {
             let new_token = self.get_token().await?;
             self.token.lock().unwrap().insert(new_token).header.clone()
