@@ -658,6 +658,14 @@ impl Section {
             Fragments::Xref(frag) => SectionContent::XRefFragment(frag),
         });
     }
+
+    pub fn with_fragments(mut self, fragments: Vec<Fragments>) -> Self {
+        for frag in fragments {
+            self.add_fragment(frag);
+        }
+
+        self
+    }
 }
 
 // Document
