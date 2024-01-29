@@ -61,6 +61,14 @@ pub enum Service<'a> {
         /// ID of fragment to put.
         fragment: &'a str,
     },
+    AddUriFragment {
+        /// Member to add fragment as.
+        member: &'a str,
+        /// Group URI is in.
+        group: &'a str,
+        /// URI of document.
+        uri: &'a str,
+    },
     Upload,
     UnzipLoadingZone {
         /// Member owning the loading zone.
@@ -100,6 +108,9 @@ impl Service<'_> {
                 uri,
                 fragment,
             } => format!("members/{member}/groups/{group}/uris/{uri}/fragments/{fragment}"),
+            Self::AddUriFragment { member, group, uri } => {
+                format!("members/{member}/groups/{group}/uris/{uri}/fragments")
+            }
             Self::Upload => return format!("/ps/servlet/upload"),
             Self::UnzipLoadingZone { member, group } => {
                 format!("members/{member}/groups/{group}/loadingzone/unzip")

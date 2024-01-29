@@ -235,6 +235,29 @@ impl PSServer {
         self.xml_from_response(resp).await
     }
 
+    pub async fn add_uri_fragment(
+        &self,
+        member: &str,
+        group: &str,
+        uri: &str,
+        content: &str,
+        mut params: HashMap<&str, &str>,
+    ) -> PSResult<FragmentCreation> {
+        params.insert("content", content);
+
+        let resp = self
+            .checked_post(
+                Service::AddUriFragment { member, group, uri },
+                Some(params.into_iter().collect()),
+                None,
+                Option::<&[u8]>::None,
+            )
+            .await?;
+
+        let resp = self.handle_http("add uri fragment", resp).await?;
+        self.xml_from_response(resp).await
+    }
+
     pub async fn upload(
         &self,
         group: &str,
