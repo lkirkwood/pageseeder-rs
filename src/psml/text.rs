@@ -117,7 +117,7 @@ pub enum ParaContent {
     Image(Image),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
 #[serde(rename = "para")]
 pub struct Para {
     #[serde(rename = "@indent")]
