@@ -3,6 +3,7 @@ pub mod oauth;
 pub mod services;
 #[cfg(test)]
 mod tests;
+pub mod error;
 
 use std::sync::Mutex;
 

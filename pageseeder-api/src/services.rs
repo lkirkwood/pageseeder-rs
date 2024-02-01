@@ -5,7 +5,7 @@ use reqwest::Response;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    api::model::SearchResponse,
+    model::SearchResponse,
     error::{PSError, PSResult},
 };
 

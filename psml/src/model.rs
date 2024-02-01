@@ -173,7 +173,7 @@ pub enum PropertyDatatype {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PropertyValue {
-    XRef(XRef),
+    XRef(Box<XRef>),
     Link(String),
     Markdown(String),
     Markup(String),

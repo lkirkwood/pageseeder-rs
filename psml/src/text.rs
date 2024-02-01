@@ -78,7 +78,7 @@ pub enum CharacterStyle {
     Subscript(Subscript),
     Superscript(Superscript),
     Monospace(Monospace),
-    XRef(XRef),
+    XRef(Box<XRef>),
     // TODO inline, anchor, placeholder, br, link
 }
 

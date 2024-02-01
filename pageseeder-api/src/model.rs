@@ -3,7 +3,7 @@ use std::fmt::Display;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-use crate::psml::model::{Fragments, Locator};
+use psml::model::{Fragments, Locator};
 
 #[derive(Debug, Clone)]
 pub enum Service<'a> {

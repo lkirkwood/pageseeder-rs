@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use crate::api;
+use crate::model;
 
 #[derive(Debug)]
 pub enum PSError {
@@ -8,7 +8,7 @@ pub enum PSError {
     ParseError { msg: String, xml: String },
     ServerError { msg: String },
     TokenError { msg: String },
-    ApiError(api::model::Error),
+    ApiError(model::Error),
 }
 
 pub type PSResult<T> = Result<T, PSError>;
