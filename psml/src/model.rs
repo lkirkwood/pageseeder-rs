@@ -1,5 +1,7 @@
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use super::text::{Alignment, Heading, Image, Para};
 
@@ -217,6 +219,11 @@ pub struct Property {
     pub values: Vec<PropertyValue>,
 }
 
+lazy_static! {
+    /// Matches a leading '-' or a char not in [a-zA-Z0-9_-].
+    static ref PROPERTY_BAD_NAME: Regex = Regex::new(r"(^-|[^a-zA-Z0-9_-]+)").unwrap();
+}
+
 impl Property {
     pub fn with_value(name: String, title: String, value: PropertyValue) -> Self {
         let datatype = value.datatype();
@@ -228,6 +235,11 @@ impl Property {
             multiple: None,
             attr_value: None,
         }
+    }
+
+    /// Replaces characters in `name` that are illegal for a PSML Property name.
+    pub fn sanitize_name<'a, 'b>(name: &'a str, repl: &'b str) -> Cow<'a, str> {
+        PROPERTY_BAD_NAME.replace_all(name, repl)
     }
 }
 
