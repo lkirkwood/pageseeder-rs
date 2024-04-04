@@ -174,7 +174,7 @@ impl PSServer {
         let mut pages = vec![];
         // Fetches all pages if pagenum not specified.
         if !params.contains_key("page") {
-            for page in 1..=results.total_pages {
+            for page in 2..=results.total_pages {
                 let page = page.to_string();
                 let mut params = params.clone();
 
