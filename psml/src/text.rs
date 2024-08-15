@@ -87,18 +87,25 @@ pub enum CharacterStyle {
 pub struct Image {
     // TODO enforce at least one of src, docid, uriid
     #[serde(rename = "@src")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     src: Option<String>,
     #[serde(rename = "@docid")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     docid: Option<String>,
     #[serde(rename = "@uriid")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     uriid: Option<String>,
     #[serde(rename = "@labels")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     labels: Option<String>,
     #[serde(rename = "@height")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     height: Option<u64>,
     #[serde(rename = "@width")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     width: Option<u64>,
     #[serde(rename = "@alt")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     alt: Option<String>,
 }
 
@@ -147,6 +154,7 @@ impl Para {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Heading {
     #[serde(rename = "@level")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub level: Option<u8>,
     #[serde(rename = "$value", default)]
     pub content: Vec<CharacterStyle>,
