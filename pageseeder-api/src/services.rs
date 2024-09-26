@@ -5,8 +5,7 @@ use reqwest::Response;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    model::SearchResponse,
-    error::{PSError, PSResult},
+    error::{PSError, PSResult}, model::{LoadClear, SearchResponse}
 };
 
 use super::{
@@ -278,6 +277,20 @@ impl PSServer {
             .await?;
 
         let resp = self.handle_http("file upload", resp).await?;
+        self.xml_from_response(resp).await
+    }
+
+    pub async fn clear_loading_zone(&self, member: &str, group: &str) -> PSResult<LoadClear> {
+        let resp = self
+            .checked_post(
+                Service::UnzipLoadingZone { member, group },
+                None,
+                None,
+                Option::<&[u8]>::None,
+            )
+            .await?;
+
+        let resp = self.handle_http("unzip loading zone content", resp).await?;
         self.xml_from_response(resp).await
     }
 
