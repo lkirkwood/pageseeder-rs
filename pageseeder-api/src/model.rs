@@ -70,6 +70,12 @@ pub enum Service<'a> {
         uri: &'a str,
     },
     Upload,
+    ClearLoadingZone {
+        /// Member owning the loading zone.
+        member: &'a str,
+        /// Group the loading zone is in.
+        group: &'a str,
+    },
     UnzipLoadingZone {
         /// Member owning the loading zone.
         member: &'a str,
@@ -468,6 +474,13 @@ pub struct Upload {
     pub message: Option<String>,
     pub uri: Option<Uri>,
     pub file: Option<File>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "load-clear")]
+pub struct LoadClear {
+    #[serde(rename = "@filesremoved")]
+    pub files_removed: usize,
 }
 
 #[derive(Debug, Deserialize)]
