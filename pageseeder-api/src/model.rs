@@ -118,6 +118,9 @@ impl Service<'_> {
                 format!("members/{member}/groups/{group}/uris/{uri}/fragments")
             }
             Self::Upload => return format!("/ps/servlet/upload"),
+            Self::ClearLoadingZone { member, group } => {
+                format!("members/{member}/groups/{group}/loadingzone/clear")
+            }
             Self::UnzipLoadingZone { member, group } => {
                 format!("members/{member}/groups/{group}/loadingzone/unzip")
             }
