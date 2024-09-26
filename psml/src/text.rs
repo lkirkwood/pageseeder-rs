@@ -151,11 +151,15 @@ impl Para {
     }
 }
 
+fn default_heading_level() -> u8 {
+    1
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Heading {
     #[serde(rename = "@level")]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub level: Option<u8>,
+    #[serde(default = "default_heading_level")]
+    pub level: u8,
     #[serde(rename = "$value", default)]
     pub content: Vec<CharacterStyle>,
 }
