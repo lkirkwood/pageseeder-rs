@@ -283,7 +283,7 @@ impl PSServer {
     pub async fn clear_loading_zone(&self, member: &str, group: &str) -> PSResult<LoadClear> {
         let resp = self
             .checked_post(
-                Service::UnzipLoadingZone { member, group },
+                Service::ClearLoadingZone { member, group },
                 None,
                 None,
                 Option::<&[u8]>::None,
