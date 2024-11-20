@@ -240,7 +240,7 @@ impl Property {
     }
 
     /// Replaces characters in `name` that are illegal for a PSML Property name.
-    pub fn sanitize_name<'a, 'b>(name: &'a str, repl: &'b str) -> Cow<'a, str> {
+    pub fn sanitize_name<'a>(name: &'a str, repl: &str) -> Cow<'a, str> {
         PROPERTY_BAD_NAME.replace_all(name, repl)
     }
 }

@@ -237,7 +237,7 @@ impl PSServer {
         headers: Option<HeaderMap<HeaderValue>>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
-        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        let mut new_headers = headers.unwrap_or_default();
         new_headers.insert("authorization", token.clone());
         self.get(uri, params, Some(new_headers)).await
     }
@@ -250,7 +250,7 @@ impl PSServer {
         body: Option<T>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
-        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        let mut new_headers = headers.unwrap_or_default();
         new_headers.insert("authorization", token.clone());
         self.post(uri, params, Some(new_headers), body).await
     }
@@ -263,7 +263,7 @@ impl PSServer {
         form: Option<&F>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
-        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        let mut new_headers = headers.unwrap_or_default();
         new_headers.insert("authorization", token.clone());
         self._post_form(uri_slug, params, Some(new_headers), form)
             .await
@@ -277,7 +277,7 @@ impl PSServer {
         body: Option<T>,
     ) -> PSResult<Response> {
         let token = self.update_token().await?;
-        let mut new_headers = headers.unwrap_or(HeaderMap::new());
+        let mut new_headers = headers.unwrap_or_default();
         new_headers.insert("authorization", token.clone());
         self.put(uri, params, Some(new_headers), body).await
     }
