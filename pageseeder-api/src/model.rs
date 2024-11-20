@@ -117,7 +117,7 @@ impl Service<'_> {
             Self::AddUriFragment { member, group, uri } => {
                 format!("members/{member}/groups/{group}/uris/{uri}/fragments")
             }
-            Self::Upload => return format!("/ps/servlet/upload"),
+            Self::Upload => return "/ps/servlet/upload".to_string(),
             Self::ClearLoadingZone { member, group } => {
                 format!("members/{member}/groups/{group}/loadingzone/clear")
             }
