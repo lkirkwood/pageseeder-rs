@@ -3,6 +3,8 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, collections::HashMap};
 
+use crate::text::CharacterStyle;
+
 use super::text::{Alignment, Heading, Image, Para};
 
 // XRef
@@ -463,8 +465,8 @@ pub struct TableCell {
     pub colspan: Option<u64>,
     #[serde(rename = "@rowspan", skip_serializing_if = "Option::is_none")]
     pub rowspan: Option<u64>,
-    #[serde(rename = "$text", default)]
-    pub content: String,
+    #[serde(rename = "$value", default)]
+    pub content: Vec<CharacterStyle>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -499,7 +501,7 @@ impl Table {
                     cells: row
                         .into_iter()
                         .map(|cell| TableCell {
-                            content: cell,
+                            content: vec![CharacterStyle::Text(cell)],
                             ..Default::default()
                         })
                         .collect(),
