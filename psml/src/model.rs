@@ -467,6 +467,7 @@ pub struct TableCell {
     pub rowspan: Option<u64>,
     #[serde(rename = "$value", default)]
     pub content: Vec<CharacterStyle>,
+    // TODO extend content to include images etc.
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
