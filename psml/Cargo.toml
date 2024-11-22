@@ -6,6 +6,7 @@ description = "A library for serialising to, and deserialising from, PSML."
 authors = ["Linus Kirkwood <linuskirkwood@gmail.com"]
 license = "LGPL-3.0-only"
 readme = "README.md"
+repository = "https://github.com/lkirkwood/pageseeder-rs"
 
 [dependencies]
 quick-xml = { version = "0.31.0", features = ["serialize"]}

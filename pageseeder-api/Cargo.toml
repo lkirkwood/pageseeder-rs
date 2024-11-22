@@ -6,6 +6,7 @@ description = "An asynchronous, runtime-agnostic client for the PageSeeder Servi
 authors = ["Linus Kirkwood <linuskirkwood@gmail.com"]
 license = "LGPL-3.0-only"
 readme = "README.md"
+repository = "https://github.com/lkirkwood/pageseeder-rs"
 
 [dependencies]
 reqwest = { version = "0.11.11", features = ["blocking"] }
