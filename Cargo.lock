@@ -602,7 +602,7 @@ name = "pageseeder-api"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "psml",
+ "psml 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quick-xml",
  "reqwest",
  "serde",
@@ -671,6 +671,18 @@ name = "psml"
 version = "0.1.0"
 dependencies = [
  "indexmap 1.9.3",
+ "lazy_static",
+ "quick-xml",
+ "regex",
+ "serde",
+]
+
+[[package]]
+name = "psml"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "286d5ba543177bf50f2fae2a8934bf94ac12d8e1d6940fa057246903716d3862"
+dependencies = [
  "lazy_static",
  "quick-xml",
  "regex",
