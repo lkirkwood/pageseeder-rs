@@ -13,4 +13,4 @@ serde_json = "1.0.85"
 chrono = { version ="0.4.22", features = ["serde"] }
 tokio = { version = "1.21.0", features = ["full"] }
 quick-xml = { version = "0.31.0", features = ["serialize"]}
-psml = { path = "../psml" }
+psml = { version = "0.1.0" }
