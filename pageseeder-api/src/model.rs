@@ -26,6 +26,8 @@ pub enum PSError {
 
 pub type PSResult<T> = Result<T, PSError>;
 
+// Services
+
 #[derive(Debug, Clone)]
 pub enum Service<'a> {
     GetGroup {
@@ -159,7 +161,7 @@ impl From<Service<'_>> for String {
     }
 }
 
-// Error
+// Elements
 
 #[derive(Debug, Deserialize)]
 pub struct Error {
@@ -168,8 +170,6 @@ pub struct Error {
     pub request: String,
     pub message: String,
 }
-
-// Group
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
