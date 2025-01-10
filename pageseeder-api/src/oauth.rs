@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use reqwest::header::HeaderValue;
 use serde::Deserialize;
 
-use crate::error::{PSError, PSResult};
+use crate::model::{PSError, PSResult};
 
 #[derive(Debug)]
 pub enum PSCredentials {

@@ -4,9 +4,7 @@ use quick_xml::de;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 
-use crate::{
-    error::{PSError, PSResult}, model::{LoadClear, SearchResponse}
-};
+use crate::model::{LoadClear, PSError, PSResult, SearchResponse};
 
 use super::{
     model::{
@@ -19,17 +17,15 @@ use super::{
 impl PSServer {
     async fn handle_http(&self, op: &str, resp: Response) -> PSResult<Response> {
         if !(200..300).contains(&resp.status().as_u16()) {
-            match self.xml_from_response::<Error>(resp).await {
-                Ok(err) => return Err(PSError::ApiError(err)),
-                Err(PSError::ParseError { xml, .. }) => {
-                    return Err(PSError::ServerError {
-                        msg: format!("{op} failed: {xml}",),
-                    })
-                }
-                Err(other) => return Err(other),
-            }
+            let err = self.xml_from_response::<Error>(resp).await?;
+            Err(PSError::ApiError {
+                id: err.id,
+                req: op.to_string(),
+                msg: err.message,
+            })
+        } else {
+            Ok(resp)
         }
-        Ok(resp)
     }
 
     /// Returns a type from the xml content of a response.
