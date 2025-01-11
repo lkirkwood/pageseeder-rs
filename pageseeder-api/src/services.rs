@@ -15,35 +15,16 @@ use super::{
 };
 
 impl PSServer {
-    async fn handle_http(&self, op: &str, resp: Response) -> PSResult<Response> {
+    async fn handle_http<'de, T: DeserializeOwned>(&self, op: &str, resp: Response) -> PSResult<T> {
         if !(200..300).contains(&resp.status().as_u16()) {
-            let err = self.xml_from_response::<Error>(resp).await?;
+            let err: Error = de::from_str(&resp.text().await?)?;
             Err(PSError::ApiError {
                 id: err.id,
                 req: op.to_string(),
                 msg: err.message,
             })
         } else {
-            Ok(resp)
-        }
-    }
-
-    /// Returns a type from the xml content of a response.
-    async fn xml_from_response<T: DeserializeOwned>(&self, resp: Response) -> PSResult<T> {
-        let text = match resp.text().await {
-            Err(err) => {
-                return Err(PSError::CommunicationError {
-                    msg: format!("Failed to decode server response: {:?}", err),
-                })
-            }
-            Ok(_text) => _text,
-        };
-        match de::from_str(&text) {
-            Err(err) => Err(PSError::ParseError {
-                msg: format!("Deserialisation of xml failed: {:?}", err),
-                xml: text,
-            }),
-            Ok(obj) => Ok(obj),
+            Ok(de::from_str(&resp.text().await?)?)
         }
     }
 
@@ -53,8 +34,7 @@ impl PSServer {
             .checked_get(Service::GetGroup { group: name }, None, None)
             .await?;
 
-        let resp = self.handle_http("get group", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get group", resp).await
     }
 
     /// Gets info about a single URI.
@@ -63,8 +43,7 @@ impl PSServer {
             .checked_get(Service::GetUri { member, uri }, None, None)
             .await?;
 
-        let resp = self.handle_http("get uri", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get uri", resp).await
     }
 
     /// Gets the history of a single URI.
@@ -73,8 +52,7 @@ impl PSServer {
             .checked_get(Service::GetUriHistory { group, uri }, None, None)
             .await?;
 
-        let resp = self.handle_http("get uri history", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get uri history", resp).await
     }
 
     /// Gets the history of all URIs in a group.
@@ -100,8 +78,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("get uris history", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get uris history", resp).await
     }
 
     pub async fn get_uri_fragment(
@@ -125,8 +102,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("get uri fragment", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get uri fragment", resp).await
     }
 
     /// Returns the pageseeder thread that is exporting the URI(s).
@@ -141,8 +117,7 @@ impl PSServer {
             .checked_get(Service::UriExport { member, uri }, Some(params), None)
             .await?;
 
-        let resp = self.handle_http("uri export", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("uri export", resp).await
     }
 
     /// Searches a group.
@@ -160,9 +135,8 @@ impl PSServer {
             .checked_get(service.clone(), Some(param_vec), None)
             .await?;
 
-        let resp = self.handle_http("group search", resp).await?;
         let results = self
-            .xml_from_response::<SearchResponse>(resp)
+            .handle_http::<SearchResponse>("group search", resp)
             .await?
             .results;
 
@@ -181,11 +155,7 @@ impl PSServer {
                         None,
                     )
                     .await?;
-                pages.push(
-                    self.xml_from_response::<SearchResponse>(resp)
-                        .await?
-                        .results,
-                );
+                pages.push(de::from_str(&resp.text().await?)?);
             }
         }
 
@@ -199,8 +169,7 @@ impl PSServer {
             .checked_get(Service::ThreadProgress { id: thread_id }, None, None)
             .await?;
 
-        let resp = self.handle_http("get thread progress", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("get thread progress", resp).await
     }
 
     pub async fn put_uri_fragment(
@@ -226,8 +195,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("put uri fragment", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("put uri fragment", resp).await
     }
 
     pub async fn add_uri_fragment(
@@ -249,8 +217,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("add uri fragment", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("add uri fragment", resp).await
     }
 
     pub async fn upload(
@@ -272,8 +239,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("file upload", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("upload", resp).await
     }
 
     pub async fn clear_loading_zone(&self, member: &str, group: &str) -> PSResult<LoadClear> {
@@ -286,8 +252,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("unzip loading zone content", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("clear loading zone", resp).await
     }
 
     pub async fn unzip_loading_zone(
@@ -308,8 +273,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self.handle_http("unzip loading zone content", resp).await?;
-        self.xml_from_response(resp).await
+        self.handle_http("unzip loading zone content", resp).await
     }
 
     pub async fn start_loading(
@@ -327,9 +291,7 @@ impl PSServer {
             )
             .await?;
 
-        let resp = self
-            .handle_http("start loading the loading zone", resp)
-            .await?;
-        self.xml_from_response(resp).await
+        self.handle_http("start loading the loading zone content", resp)
+            .await
     }
 }

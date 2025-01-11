@@ -69,12 +69,7 @@ impl PSServer {
             req = req.headers(headers)
         }
 
-        match req.send().await {
-            Ok(resp) => Ok(resp),
-            Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to get {}: {:?}", uri, err),
-            }),
-        }
+        Ok(req.send().await?)
     }
 
     /// Makes a post request to the server at the specified uri slug.
@@ -99,12 +94,7 @@ impl PSServer {
             req = req.body(body);
         }
 
-        match req.send().await {
-            Ok(resp) => Ok(resp),
-            Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to post {}: {:?}", uri, err),
-            }),
-        }
+        Ok(req.send().await?)
     }
 
     /// Makes a post request to the server at the specified uri slug.
@@ -117,6 +107,7 @@ impl PSServer {
         form: Option<&F>,
     ) -> PSResult<Response> {
         let mut req = self.client.post(self.format_url(uri_slug));
+
         if params.is_some() {
             req = req.query(&params.unwrap());
         }
@@ -126,12 +117,8 @@ impl PSServer {
         if form.is_some() {
             req = req.form(form.unwrap());
         }
-        match req.send().await {
-            Ok(resp) => Ok(resp),
-            Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to post {}: {:?}", uri_slug, err),
-            }),
-        }
+
+        Ok(req.send().await?)
     }
 
     async fn put<U: Into<String>, T: Into<Body>>(
@@ -154,12 +141,7 @@ impl PSServer {
             req = req.body(body);
         }
 
-        match req.send().await {
-            Ok(resp) => Ok(resp),
-            Err(err) => Err(PSError::CommunicationError {
-                msg: format!("Failed to put {}: {:?}", uri, err),
-            }),
-        }
+        Ok(req.send().await?)
     }
 
     // Token
@@ -175,21 +157,12 @@ impl PSServer {
 
     /// Gets a new access token for the server.
     async fn get_token(&self) -> PSResult<PSToken> {
-        let resp_res = self
+        let resp = self
             .client
             .post(self.format_url("/ps/oauth/token"))
             .form(&self.credentials.to_map())
             .send()
-            .await;
-
-        let resp = match resp_res {
-            Ok(resp) => resp,
-            Err(err) => {
-                return Err(PSError::CommunicationError {
-                    msg: format!("Post to token endpoint failed: {:?}", err),
-                })
-            }
-        };
+            .await?;
 
         let resp_text = match resp.text().await {
             Err(err) => {
