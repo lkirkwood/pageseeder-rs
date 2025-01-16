@@ -111,6 +111,12 @@ pub enum Service<'a> {
         /// Group the loading zone is in.
         group: &'a str,
     },
+    DownloadMemberResource {
+        /// Group the resource was exported from.
+        group: &'a str,
+        /// File name of the resource.
+        filename: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -149,6 +155,9 @@ impl Service<'_> {
             }
             Self::StartLoading { member, group } => {
                 format!("members/{member}/groups/{group}/loadingzone/start")
+            }
+            Self::DownloadMemberResource { group, filename } => {
+                return format!("/ps/member-resource/{group}/{filename}")
             }
         };
         format!("/ps/service/{path}")

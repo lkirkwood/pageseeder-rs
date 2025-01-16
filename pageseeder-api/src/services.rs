@@ -294,4 +294,13 @@ impl PSServer {
         self.handle_http("start loading the loading zone content", resp)
             .await
     }
+
+    /// Downloads a member resource like the result of an export thread.
+    pub async fn download_member_resource(&self, group: &str, filename: &str) -> PSResult<Vec<u8>> {
+        let resp = self
+            .checked_get(Service::DownloadMemberResource { group, filename }, None, None)
+            .await?;
+
+        Ok(resp.bytes().await?.to_vec())
+    }
 }
