@@ -203,11 +203,11 @@ pub struct Group {
 
 impl Group {
     pub fn short_name(&self) -> &str {
-        return self
+        self
             .name
             .rsplit_once('-')
             .unwrap_or_else(|| panic!("Group name has no '-': {}", self.name))
-            .1;
+            .1
     }
 }
 
