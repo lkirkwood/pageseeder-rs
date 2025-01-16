@@ -3,7 +3,7 @@ name = "pageseeder-api"
 version = "0.1.0"
 edition = "2021"
 description = "An asynchronous, runtime-agnostic client for the PageSeeder Service API."
-authors = ["Linus Kirkwood <linuskirkwood@gmail.com"]
+authors = ["Linus Kirkwood <linuskirkwood@gmail.com>"]
 license = "LGPL-3.0-only"
 readme = "README.md"
 repository = "https://github.com/lkirkwood/pageseeder-rs"
@@ -11,7 +11,7 @@ keywords = ["pageseeder", "api", "http", "asynchronous", "library"]
 categories = ["api-bindings", "asynchronous", "web-programming::http-client"]
 
 [dependencies]
-reqwest = { version = "0.11.11", features = ["blocking"] }
+reqwest = { version = "0.12.9" }
 serde = { version = "1.0.143", features = ["derive"] }
 serde_json = "1.0.85"
 chrono = { version ="0.4.22", features = ["serde"] }
