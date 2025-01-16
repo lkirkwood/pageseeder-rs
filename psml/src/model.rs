@@ -167,6 +167,7 @@ impl XRef {
 #[serde(rename_all = "lowercase")]
 pub enum PropertyDatatype {
     String,
+    Date,
     Datetime,
     XRef,
     Link,
