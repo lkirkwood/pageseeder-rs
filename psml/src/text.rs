@@ -67,6 +67,14 @@ pub struct Monospace {
 
 impl_char_style!(Monospace);
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Link {
+    #[serde(rename = "$value", default)]
+    pub content: Vec<CharacterStyle>,
+}
+
+impl_char_style!(Link);
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CharacterStyle {
@@ -79,7 +87,7 @@ pub enum CharacterStyle {
     Superscript(Superscript),
     Monospace(Monospace),
     XRef(Box<XRef>),
-    // TODO inline, anchor, placeholder, br, link
+    Link(Link), // TODO inline, anchor, placeholder, br
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
