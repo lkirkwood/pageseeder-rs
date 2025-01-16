@@ -129,6 +129,7 @@ pub enum ParaContent {
     Superscript(Superscript),
     Monospace(Monospace),
     XRef(XRef),
+    Link(Link),
     Image(Image),
 }
 
