@@ -11,7 +11,7 @@ keywords = ["serde", "psml", "pageseeder", "parsing", "library"]
 categories = ["encoding", "text-processing", "parser-implementations"]
 
 [dependencies]
-indexmap = { version = "1.9.1", optional = true}
+indexmap = { version = "1.9.1", optional = true }
 serde = { version = "1.0.143", features = ["derive"] }
 lazy_static = "1.4.0"
 regex = "1.10.3"
