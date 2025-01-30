@@ -4,7 +4,7 @@ use quick_xml::de;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 
-use crate::model::{LoadClear, PSError, PSResult, SearchResponse};
+use crate::model::{LoadClear, PSError, PSResult, SearchResponse, VersionCreation};
 
 use super::{
     model::{
@@ -302,5 +302,28 @@ impl PSServer {
             .await?;
 
         Ok(resp.bytes().await?.to_vec())
+    }
+
+    /// Creates a version for a URI.
+    pub async fn create_uri_version(
+        &self,
+        member: &str,
+        group: &str,
+        uri: &str,
+        name: &str,
+        mut params: HashMap<&str, &str>,
+    ) -> PSResult<VersionCreation> {
+        params.insert("name", name);
+
+        let resp = self
+            .checked_post(
+                Service::CreateUriVersion { member, group, uri },
+                Some(params.into_iter().collect()),
+                None,
+                Option::<&[u8]>::None,
+            )
+            .await?;
+
+        self.handle_http("create version", resp).await
     }
 }

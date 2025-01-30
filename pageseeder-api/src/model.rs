@@ -3,7 +3,7 @@ use std::fmt::Display;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-use psml::model::{Fragments, Locator};
+use psml::model::{Description, Fragments, Labels, Locator};
 use thiserror::Error;
 
 // Result
@@ -117,6 +117,14 @@ pub enum Service<'a> {
         /// File name of the resource.
         filename: &'a str,
     },
+    CreateUriVersion {
+        /// Member to create version as.
+        member: &'a str,
+        /// Group URI is in.
+        group: &'a str,
+        /// URI of document.
+        uri: &'a str,
+    },
 }
 
 impl Service<'_> {
@@ -158,6 +166,9 @@ impl Service<'_> {
             }
             Self::DownloadMemberResource { group, filename } => {
                 return format!("/ps/member-resource/{group}/{filename}")
+            }
+            Self::CreateUriVersion { member, group, uri } => {
+                format!("members/{member}/groups/{group}/uris/{uri}/versions")
             }
         };
         format!("/ps/service/{path}")
@@ -203,8 +214,7 @@ pub struct Group {
 
 impl Group {
     pub fn short_name(&self) -> &str {
-        self
-            .name
+        self.name
             .rsplit_once('-')
             .unwrap_or_else(|| panic!("Group name has no '-': {}", self.name))
             .1
@@ -526,4 +536,26 @@ pub struct LoadUnzip {
 #[serde(rename = "load-start")]
 pub struct LoadStart {
     pub thread: Thread,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "version")]
+pub struct Version {
+    #[serde(rename = "@id")]
+    pub id: String,
+    #[serde(rename = "@name")]
+    pub name: String,
+    #[serde(rename = "@created")]
+    pub created: String,
+    pub author: Author,
+    pub description: Description,
+    pub labels: Labels,
+}
+
+/// Should have exactly one of version or thread.
+#[derive(Debug, Deserialize)]
+#[serde(rename = "version-creation")]
+pub struct VersionCreation {
+    pub version: Option<Version>,
+    pub thread: Option<Thread>,
 }
