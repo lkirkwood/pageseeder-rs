@@ -750,7 +750,7 @@ pub struct DocumentInfo {
 /// A comma-separated list of label values for a document, note or fragment.
 /// For PSML definition see: https://dev.pageseeder.com/psml/element_reference/element-labels.html
 pub struct Labels {
-    #[serde(rename = "$value")]
+    #[serde(rename = "$value", default)]
     pub value: String,
 }
 
