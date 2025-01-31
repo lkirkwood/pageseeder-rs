@@ -548,7 +548,7 @@ pub struct Version {
     #[serde(rename = "@created")]
     pub created: String,
     pub author: Author,
-    pub description: Description,
+    pub description: Option<Description>,
     pub labels: Labels,
 }
 
