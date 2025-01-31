@@ -10,9 +10,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PSError {
-    #[error("failed while communicating with server")]
+    #[error("failed while communicating with server: {0}")]
     CommunicationError(#[from] reqwest::Error),
-    #[error("failed while parsing server response")]
+    #[error("failed while parsing server response: {0}")]
     ParseError(#[from] quick_xml::DeError),
     #[error("failed while authenticating with the token: {msg}")]
     TokenError { msg: String },
