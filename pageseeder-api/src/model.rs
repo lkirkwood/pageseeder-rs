@@ -306,9 +306,9 @@ pub struct Author {
     #[serde(rename = "@surname")]
     pub surname: String,
     #[serde(rename = "@username")]
-    pub username: String,
+    pub username: Option<String>,
     #[serde(rename = "@status")]
-    pub status: String,
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
