@@ -528,7 +528,7 @@ pub enum FragmentContent {
     Para(Para),
     Preformat {
         #[serde(rename = "$value", default)]
-        child: Vec<FragmentContent>,
+        child: Vec<CharacterStyle>,
     },
     Image(Image),
     Table(Table),
